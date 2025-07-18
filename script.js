@@ -1,9 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. DOM ELEMENT REFERENCES (Unchanged) ---
-    const gameTitleEl = document.getElementById('game-title'), gridContainer = document.getElementById('puzzle-grid'), wordListTitleEl = document.getElementById('word-list-title'), wordListUl = document.getElementById('words-to-find'), scoreEl = document.getElementById('score'), levelEl = document.getElementById('level'), timerEl = document.getElementById('timer'), newGameBtn = document.getElementById('new-game-btn'), newGameBtnText = document.getElementById('new-game-btn-text'), skipBtn = document.getElementById('skip-btn'), soundBtn = document.getElementById('sound-btn'), soundIconEl = document.getElementById('sound-icon'), langEnBtn = document.getElementById('lang-en'), langRoBtn = document.getElementById('lang-ro'), bibleModeCheckbox = document.getElementById('bible-mode-checkbox'), completionMessageEl = document.getElementById('completion-message'), completionDetailsEl = document.getElementById('completion-details'), verseDisplayEl = document.getElementById('verse-display'), definitionDisplayEl = document.getElementById('definition-display'), definitionWordEl = document.getElementById('definition-word'), definitionTextEl = document.getElementById('definition-text'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryBtn = document.getElementById('close-history-btn'), historyLogEl = document.getElementById('history-log');
+    // --- 1. DOM ELEMENT REFERENCES ---
+    const gameTitleEl = document.getElementById('game-title'),
+        gridContainer = document.getElementById('puzzle-grid'),
+        wordListTitleEl = document.getElementById('word-list-title'),
+        wordListUl = document.getElementById('words-to-find'),
+        scoreEl = document.getElementById('score'),
+        levelEl = document.getElementById('level'),
+        timerEl = document.getElementById('timer'),
+        newGameBtn = document.getElementById('new-game-btn'),
+        newGameBtnText = document.getElementById('new-game-btn-text'),
+        skipBtn = document.getElementById('skip-btn'),
+        soundBtn = document.getElementById('sound-btn'),
+        soundIconEl = document.getElementById('sound-icon'),
+        langEnBtn = document.getElementById('lang-en'),
+        langRoBtn = document.getElementById('lang-ro'),
+        bibleModeCheckbox = document.getElementById('bible-mode-checkbox'),
+        completionMessageEl = document.getElementById('completion-message'),
+        completionDetailsEl = document.getElementById('completion-details'),
+        verseDisplayEl = document.getElementById('verse-display'),
+        definitionDisplayEl = document.getElementById('definition-display'),
+        definitionWordEl = document.getElementById('definition-word'),
+        definitionTextEl = document.getElementById('definition-text'),
+        historyBtn = document.getElementById('history-btn'),
+        historyModal = document.getElementById('history-modal'),
+        closeHistoryBtn = document.getElementById('close-history-btn'),
+        historyLogEl = document.getElementById('history-log'),
+        versionInfoEl = document.getElementById('version-info');
 
-    // --- 2. GAME STATE & CONFIGURATION (Unchanged) ---
+    // --- 2. GAME STATE & CONFIGURATION ---
+    const GAME_VERSION = "1.0.1"; // Updated version for mobile fixes
+    const BUILD_DATE = "2025-07-18";
     let gameState = {};
     let puzzleTimer;
     let bibleData = {}, standardDictionaries = {};
@@ -11,23 +38,60 @@ document.addEventListener('DOMContentLoaded', () => {
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
-    // --- SOUND ENGINE (Unchanged) ---
+    // --- REBUILT & FIXED: SOUND ENGINE for MOBILE ---
     const sound = {
         isMuted: true,
         audioContext: null,
         buffers: {},
         isUnlocked: false,
-        init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); document.body.addEventListener('click', () => this.unlock(), { once: true }); document.body.addEventListener('touchend', () => this.unlock(), { once: true }); },
-        unlock: function() { if (this.isUnlocked || this.audioContext) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); } catch (e) { console.error("Web Audio API is not supported in this browser.", e); } },
+
+        init: function() {
+            this.isMuted = localStorage.getItem('soundMuted') === 'true';
+            soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png';
+            soundBtn.classList.toggle('muted', this.isMuted);
+        },
+
+        unlock: function() {
+            if (this.isUnlocked || !this.audioContext) {
+                const unlockOverlay = document.getElementById('sound-unlock-overlay');
+                if (unlockOverlay) unlockOverlay.style.display = 'none';
+                return;
+            };
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this._loadSounds();
+                this.isUnlocked = true;
+                console.log("Audio Context unlocked and sounds are loading.");
+                const unlockOverlay = document.getElementById('sound-unlock-overlay');
+                if (unlockOverlay) unlockOverlay.style.display = 'none';
+            } catch (e) { console.error("Web Audio API is not supported in this browser.", e); }
+        },
+        
         _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } },
         _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); },
-        play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) { return; } if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); },
-        toggleMute: function() { this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); this.unlock(); }
+        play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); },
+        
+        toggleMute: function() {
+            if (!this.isUnlocked) { this.unlock(); }
+            this.isMuted = !this.isMuted;
+            localStorage.setItem('soundMuted', this.isMuted);
+            soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png';
+            soundBtn.classList.toggle('muted', this.isMuted);
+        }
     };
 
-    // --- 3. CORE INITIALIZATION (Unchanged) ---
+    // --- 3. CORE INITIALIZATION ---
     async function initializeGame() {
+        versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`;
         sound.init();
+
+        // Create and show the sound unlock overlay
+        const unlockOverlay = document.createElement('div');
+        unlockOverlay.id = 'sound-unlock-overlay';
+        unlockOverlay.innerHTML = '<div>🔊 Click here to enable sound</div>';
+        unlockOverlay.onclick = () => sound.unlock();
+        document.body.appendChild(unlockOverlay);
+
         try {
             const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([ fetch('bible_data.json'), fetch('english_dictionary.json'), fetch('romanian_dictionary.json'), ]);
             if (!bibleRes.ok) throw new Error(`Bible data fetch failed`); if (!dictEngRes.ok) throw new Error(`English dictionary fetch failed`); if (!dictRomRes.ok) throw new Error(`Romanian dictionary fetch failed`);
@@ -38,32 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
             initGameSession();
         } catch (error) {
             console.error("CRITICAL ERROR: Could not load game data files.", error);
-            alert("Error: Could not load game data. Please ensure bible_data.json, english_dictionary.json, and romanian_dictionary.json are present and correct.");
+            alert("Error: Could not load game data. Please ensure your JSON files are present and correct.");
         }
     }
 
-    // --- 4. GAME SESSION & STATE LOGIC ---
-    function initGameSession() { const savedState = loadState(); if (savedState && confirm("Continue your previous game?")) { gameState = savedState; bibleModeCheckbox.checked = gameState.bibleMode; renderGame(); if (gameState.foundWords.length === gameState.words.length) { completionMessageEl.classList.remove('hidden'); newGameBtnText.textContent = "Next Level"; } else { startTimer(); } } else { localStorage.removeItem('wordSearchGameState'); const oldScore = savedState ? savedState.score : 0; const isBible = bibleModeCheckbox.checked; createNewGame('english', isBible, oldScore); } }
+    // --- 4. GAME SESSION & STATE LOGIC (Unchanged) ---
+    function initGameSession() { const savedState = loadState(); if (savedState) { console.log("Found saved state. Resuming game."); gameState = savedState; bibleModeCheckbox.checked = gameState.bibleMode; langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english'); langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian'); renderGame(); if (gameState.foundWords.length === gameState.words.length) { completionMessageEl.classList.remove('hidden'); newGameBtnText.textContent = "Next Level"; } else { startTimer(); } } else { console.log("No saved state found. Starting new game with defaults."); createNewGame('romanian', true, 0); } }
     function saveState() { if (gameState) { localStorage.setItem('wordSearchGameState', JSON.stringify(gameState)); } }
     function loadState() { const savedStateJSON = localStorage.getItem('wordSearchGameState'); if (savedStateJSON) { try { return JSON.parse(savedStateJSON); } catch (e) { console.error("Failed to parse saved state, starting fresh.", e); localStorage.removeItem('wordSearchGameState'); return null; } } return null; }
     function saveHistory(levelData) { if (!levelData) return; let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || []; history.push(levelData); localStorage.setItem('wordSearchHistory', JSON.stringify(history)); }
-    
-    // FIXED: Restored the "Points Earned" display
-    function displayHistory() {
-        let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || [];
-        historyLogEl.innerHTML = '';
-        if (history.length === 0) { historyLogEl.innerHTML = '<p>No games completed yet!</p>'; return; }
-        history.slice().reverse().forEach(entry => {
-            const entryDiv = document.createElement('div');
-            entryDiv.className = 'history-entry';
-            const date = new Date(entry.timestamp).toLocaleString();
-            const status = entry.completed ? '' : `<span class="entry-skipped">(Incomplete)</span>`;
-            // THE FIX IS ON THE NEXT LINE:
-            entryDiv.innerHTML = `<div class="entry-header"><strong>Level ${entry.level} ${status}</strong><span class="entry-date">${date}</span></div><p class="entry-details"><strong>Mode:</strong> ${entry.mode}</p><p class="entry-details"><strong>Time:</strong> ${entry.time}s | <strong>Hints Used:</strong> ${entry.hintsUsed} | <strong>Words Found:</strong> ${entry.wordsFound}/${entry.totalWords} | <strong>Points Earned:</strong> ${entry.pointsEarned}</p>`;
-            historyLogEl.appendChild(entryDiv);
-        });
-        historyModal.classList.remove('hidden');
-    }
+    function displayHistory() { let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || []; historyLogEl.innerHTML = ''; if (history.length === 0) { historyLogEl.innerHTML = '<p>No games completed yet!</p>'; return; } history.slice().reverse().forEach(entry => { const entryDiv = document.createElement('div'); entryDiv.className = 'history-entry'; const date = new Date(entry.timestamp).toLocaleString(); const status = entry.completed ? '' : `<span class="entry-skipped">(Incomplete)</span>`; entryDiv.innerHTML = `<div class="entry-header"><strong>Level ${entry.level} ${status}</strong><span class="entry-date">${date}</span></div><p class="entry-details"><strong>Mode:</strong> ${entry.mode}</p><p class="entry-details"><strong>Time:</strong> ${entry.time}s | <strong>Hints Used:</strong> ${entry.hintsUsed} | <strong>Words Found:</strong> ${entry.wordsFound}/${entry.totalWords} | <strong>Points Earned:</strong> ${entry.pointsEarned}</p>`; historyLogEl.appendChild(entryDiv); }); historyModal.classList.remove('hidden'); }
 
     // --- 5. PUZZLE GENERATION & TIMER (Unchanged) ---
     function startTimer() { stopTimer(); let seconds = gameState.currentLevelData.time || 0; timerEl.textContent = `${seconds}s`; puzzleTimer = setInterval(() => { seconds++; timerEl.textContent = `${seconds}s`; if (gameState.currentLevelData) gameState.currentLevelData.time = seconds; }, 1000); }
@@ -80,12 +128,61 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderWordList() { wordListUl.innerHTML = ''; const sortedWords = [...gameState.words].sort(); wordColorMap = {}; let shuffledPalette = [...colorPalette].sort(() => 0.5 - Math.random()); sortedWords.forEach((word, index) => { wordColorMap[word] = shuffledPalette[index % shuffledPalette.length]; }); sortedWords.forEach(word => { const li = document.createElement('li'); li.textContent = word; li.id = `word-${word}`; if (gameState.foundWords.includes(word)) { li.classList.add('found'); li.style.backgroundColor = `var(${wordColorMap[word]})`; } li.addEventListener('click', handleHintRequest); wordListUl.appendChild(li); }); }
     function updateStats() { scoreEl.textContent = gameState.score; levelEl.textContent = gameState.level; }
 
-    // --- 7. WORD SELECTION & PROCESSING (Unchanged) ---
+    // --- 7. WORD SELECTION & PROCESSING (REBUILT FOR TOUCH) ---
     let isSelecting = false, selectionStartCell = null, selectedCells = [];
-    function addSelectionListeners() { gridContainer.addEventListener('pointerdown', handleSelectionStart); gridContainer.addEventListener('pointermove', handleSelectionMove); window.addEventListener('pointerup', handleSelectionEnd); }
-    function handleSelectionStart(e) { if (e.target.classList.contains('grid-cell')) { isSelecting = true; selectionStartCell = e.target; highlightLine(selectionStartCell, selectionStartCell); } }
-    function handleSelectionMove(e) { if (!isSelecting || !e.target.classList.contains('grid-cell')) return; highlightLine(selectionStartCell, e.target); }
-    function handleSelectionEnd() { if (!isSelecting) return; isSelecting = false; const selectedWord = selectedCells.map(cell => cell.textContent).join(''); const reversedWord = selectedCells.map(cell => cell.textContent).reverse().join(''); if (gameState.words.includes(selectedWord) && !gameState.foundWords.includes(selectedWord)) { processFoundWord(selectedWord); } else if (gameState.words.includes(reversedWord) && !gameState.foundWords.includes(reversedWord)) { processFoundWord(reversedWord); } else { if (selectedCells.length > 1) sound.play('error'); selectedCells.forEach(cell => cell.classList.remove('selected')); } selectionStartCell = null; }
+    
+    function addSelectionListeners() {
+        gridContainer.addEventListener('mousedown', handleSelectionStart);
+        gridContainer.addEventListener('mousemove', handleSelectionMove);
+        window.addEventListener('mouseup', handleSelectionEnd);
+        gridContainer.addEventListener('touchstart', handleSelectionStart, { passive: false });
+        gridContainer.addEventListener('touchmove', handleSelectionMove, { passive: false });
+        window.addEventListener('touchend', handleSelectionEnd);
+    }
+    
+    function getCellFromEvent(e) {
+        if (e.touches && e.touches.length > 0) {
+            const touch = e.touches[0];
+            return document.elementFromPoint(touch.clientX, touch.clientY);
+        }
+        return e.target;
+    }
+
+    function handleSelectionStart(e) {
+        e.preventDefault();
+        const targetCell = getCellFromEvent(e);
+        if (targetCell && targetCell.classList.contains('grid-cell')) {
+            isSelecting = true;
+            selectionStartCell = targetCell;
+            highlightLine(selectionStartCell, selectionStartCell);
+        }
+    }
+
+    function handleSelectionMove(e) {
+        if (!isSelecting) return;
+        e.preventDefault();
+        const targetCell = getCellFromEvent(e);
+        if (targetCell && targetCell.classList.contains('grid-cell')) {
+            highlightLine(selectionStartCell, targetCell);
+        }
+    }
+
+    function handleSelectionEnd() {
+        if (!isSelecting) return;
+        isSelecting = false;
+        const selectedWord = selectedCells.map(cell => cell.textContent).join('');
+        const reversedWord = selectedCells.map(cell => cell.textContent).reverse().join('');
+        if (gameState.words.includes(selectedWord) && !gameState.foundWords.includes(selectedWord)) {
+            processFoundWord(selectedWord);
+        } else if (gameState.words.includes(reversedWord) && !gameState.foundWords.includes(reversedWord)) {
+            processFoundWord(reversedWord);
+        } else {
+            if (selectedCells.length > 1) sound.play('error');
+            selectedCells.forEach(cell => cell.classList.remove('selected'));
+        }
+        selectionStartCell = null;
+    }
+
     function highlightLine(startCell, endCell) { document.querySelectorAll('.grid-cell.selected').forEach(c => c.classList.remove('selected')); selectedCells = []; const start = { r: parseInt(startCell.dataset.row), c: parseInt(startCell.dataset.col) }; const end = { r: parseInt(endCell.dataset.row), c: parseInt(endCell.dataset.col) }; const dR = end.r - start.r, dC = end.c - start.c; if (start.r === end.r || start.c === end.c || Math.abs(dR) === Math.abs(dC)) { const steps = Math.max(Math.abs(dR), Math.abs(dC)); const stepR = Math.sign(dR), stepC = Math.sign(dC); for (let i = 0; i <= steps; i++) { const cell = document.querySelector(`[data-row='${start.r + i * stepR}'][data-col='${start.c + i * stepC}']`); if (cell) { cell.classList.add('selected'); selectedCells.push(cell); } } } }
     
     function processFoundWord(word) {
@@ -122,6 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 9. GAME INITIALIZATION & CONTROLS (Unchanged) ---
     function createNewGame(language, isBibleMode, score = 0) {
+        langEnBtn.classList.toggle('active', language === 'english');
+        langRoBtn.classList.toggle('active', language === 'romanian');
+        bibleModeCheckbox.checked = isBibleMode;
         gameState = { level: 1, score: score, currentLanguage: language, bibleMode: isBibleMode, gridSize: 13, words: [], wordLocations: {}, grid: [], foundWords: [], currentLevelData: null, bibleChapterPlaylist: [] };
         startLevel();
     }
@@ -130,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         completionMessageEl.classList.add('hidden'); verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden'); newGameBtnText.textContent = "New Puzzle";
         gameState.currentLevelData = { level: gameState.level, mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`, time: 0, hintsUsed: 0, pointsEarned: 0, wordsFound: 0, totalWords: 10, completed: false, verseMap: {}, timestamp: new Date().toISOString() };
         if (gameState.bibleMode) {
+            gameTitleEl.textContent = "Bible Word Search";
             const langBibleData = bibleData[gameState.currentLanguage];
             if (!langBibleData || Object.keys(langBibleData).length === 0) { alert(`Bible data not available for '${gameState.currentLanguage}'. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
             if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) { const allChapters = []; for (const book in langBibleData) { for (const chapterNum in langBibleData[book]) { allChapters.push({ book, chapterNum }); } } gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random()); }
@@ -137,7 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
             const { book, chapterNum } = chapterInfo;
             const chapterData = langBibleData[book][chapterNum];
-            gameTitleEl.textContent = `${book} ${chapterNum}`; wordListTitleEl.textContent = "Find these words:"; let wordsWithVerses = [];
+            wordListTitleEl.textContent = `Words from ${book} ${chapterNum}:`;
+            let wordsWithVerses = [];
             for (const verseNum in chapterData) { const verseText = chapterData[verseNum]; const wordsInVerse = verseText.toUpperCase().match(/[A-ZĂÂÎȘȚ]+/g) || []; wordsInVerse.forEach(word => { if (word.length > 3 && word.length <= 10) { wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum }); } }); }
             const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
             const shuffledWords = uniqueWords.sort(() => 0.5 - Math.random());
@@ -145,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.words = selectedWords.map(w => w.word);
             selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
         } else {
-            gameTitleEl.textContent = "Word Search Wonderland";
+            gameTitleEl.textContent = "Bible Word Search";
             wordListTitleEl.textContent = "Words to Find:";
             gameState.words = getWordsForPuzzle(10);
         }
@@ -156,14 +258,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function switchLanguage(lang) {
-        saveHistory(gameState.currentLevelData);
+        if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); }
         if (gameState.foundWords && gameState.foundWords.length === gameState.words.length) { gameState.level++; }
         const currentScore = gameState.score || 0; const isBible = bibleModeCheckbox.checked;
         createNewGame(lang, isBible, currentScore);
     }
     
     function switchMode() {
-        saveHistory(gameState.currentLevelData);
+        if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); }
         const currentScore = gameState.score || 0; const currentLang = gameState.currentLanguage; const isBible = bibleModeCheckbox.checked;
         createNewGame(currentLang, isBible, currentScore);
     }
