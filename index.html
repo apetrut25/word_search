@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Search Wonderland</title>
+    
+    <!-- ADD THIS LINE to link your new icon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <h1 id="game-title">Word Search Wonderland</h1>
+        
+        <div id="controls">
+            <div id="language-switcher">
+                <button id="lang-en" class="active">English</button>
+                <button id="lang-ro">Română</button>
+            </div>
+            <div id="game-mode-switcher">
+                <input type="checkbox" id="bible-mode-checkbox">
+                <label for="bible-mode-checkbox">Bible Mode</label>
+            </div>
+            <button id="sound-btn">
+                <img id="sound-icon" src="volume.png" alt="Sound On">
+            </button>
+            <button id="history-btn">History</button>
+            <button id="skip-btn">Skip Puzzle</button>
+            <button id="new-game-btn"><span id="new-game-btn-text">New Puzzle</span></button>
+        </div>
+
+        <main id="main-content">
+            <div id="puzzle-grid"></div>
+            <div id="word-list-container">
+                <h2 id="word-list-title">Words to Find:</h2>
+                <ul id="words-to-find"></ul>
+            </div>
+        </main>
+        
+        <div id="verse-display" class="hidden"></div>
+        <div id="definition-display" class="hidden">
+            <p><strong id="definition-word"></strong>: <span id="definition-text"></span></p>
+        </div>
+
+        <div id="stats">
+            <p>Score: <span id="score">0</span></p>
+            <p>Level: <span id="level">1</span></p>
+            <p>Time: <span id="timer">0s</span></p>
+        </div>
+
+        <div id="completion-message" class="hidden">
+            <p>Level Complete!</p>
+            <span id="completion-details"></span>
+        </div>
+    </div>
+
+    <div id="history-modal" class="hidden">
+        <div class="modal-content">
+            <span id="close-history-btn" class="close-btn">×</span>
+            <h2>Game History</h2>
+            <div id="history-log"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
