@@ -1,66 +1,71 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. DOM ELEMENT REFERENCES ---
-    const gameWrapper = document.getElementById('game-wrapper'),
-        gameContainer = document.getElementById('game-container'),
-        gameTitleEl = document.getElementById('game-title'),
-        gridContainer = document.getElementById('puzzle-grid'),
-        wordListTitleEl = document.getElementById('word-list-title'),
-        wordListUl = document.getElementById('words-to-find'),
-        scoreEl = document.getElementById('score'),
-        levelEl = document.getElementById('level'),
-        timerEl = document.getElementById('timer'),
-        newGameBtn = document.getElementById('new-game-btn'),
-        newGameBtnText = document.getElementById('new-game-btn-text'),
-        skipBtn = document.getElementById('skip-btn'),
-        soundBtn = document.getElementById('sound-btn'),
-        soundIconEl = document.getElementById('sound-icon'),
-        langEnBtn = document.getElementById('lang-en'),
-        langRoBtn = document.getElementById('lang-ro'),
-        bibleModeCheckbox = document.getElementById('bible-mode-checkbox'),
-        completionMessageEl = document.getElementById('completion-message'),
-        completionDetailsEl = document.getElementById('completion-details'),
-        verseDisplayEl = document.getElementById('verse-display'),
-        definitionDisplayEl = document.getElementById('definition-display'),
-        definitionWordEl = document.getElementById('definition-word'),
-        definitionTextEl = document.getElementById('definition-text'),
-        historyBtn = document.getElementById('history-btn'),
-        historyModal = document.getElementById('history-modal'),
-        closeHistoryBtn = document.getElementById('close-history-btn'),
-        historyLogEl = document.getElementById('history-log'),
-        versionInfoEl = document.getElementById('version-info');
-
-    // --- 2. GAME STATE & CONFIGURATION ---
-    const GAME_VERSION = "1.0.4"; // Final mobile polish
+    // --- 1. DOM & CONFIGURATION ---
+    const GAME_VERSION = "1.0.7"; // Final mobile stability fix
     const BUILD_DATE = "2025-07-18";
-    let gameState = {};
-    let puzzleTimer;
-    let bibleData = {}, standardDictionaries = {};
+    const gameWrapper = document.getElementById('game-wrapper'), gameContainer = document.getElementById('game-container'), gameTitleEl = document.getElementById('game-title'), gridContainer = document.getElementById('puzzle-grid'), wordListTitleEl = document.getElementById('word-list-title'), wordListUl = document.getElementById('words-to-find'), scoreEl = document.getElementById('score'), levelEl = document.getElementById('level'), timerEl = document.getElementById('timer'), newGameBtn = document.getElementById('new-game-btn'), newGameBtnText = document.getElementById('new-game-btn-text'), skipBtn = document.getElementById('skip-btn'), soundBtn = document.getElementById('sound-btn'), soundIconEl = document.getElementById('sound-icon'), langEnBtn = document.getElementById('lang-en'), langRoBtn = document.getElementById('lang-ro'), bibleModeCheckbox = document.getElementById('bible-mode-checkbox'), completionMessageEl = document.getElementById('completion-message'), completionDetailsEl = document.getElementById('completion-details'), verseDisplayEl = document.getElementById('verse-display'), definitionDisplayEl = document.getElementById('definition-display'), definitionWordEl = document.getElementById('definition-word'), definitionTextEl = document.getElementById('definition-text'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryBtn = document.getElementById('close-history-btn'), historyLogEl = document.getElementById('history-log'), versionInfoEl = document.getElementById('version-info');
+
+    // --- 2. GAME STATE & OTHER VARIABLES ---
+    let gameState = {}, puzzleTimer, bibleData = {}, standardDictionaries = {};
     const colorPalette = ['--found-color-1', '--found-color-2', '--found-color-3', '--found-color-4', '--found-color-5', '--found-color-6', '--found-color-7', '--found-color-8', '--found-color-9', '--found-color-10'];
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
     // --- REBUILT & FIXED: SOUND ENGINE ---
-    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'flex'; } catch (e) { console.error("Web Audio API is not supported in this browser.", e); gameWrapper.style.display = 'flex'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) { return; } if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
+    const sound = {
+        isMuted: true, audioContext: null, buffers: {}, isUnlocked: false,
+        init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); },
+        unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; } catch (e) { console.error("Web Audio API is not supported in this browser.", e); } },
+        _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } },
+        _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); },
+        play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) { return; } if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); },
+        toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }
+    };
 
-    // --- 3. CORE INITIALIZATION ---
-    function initializeGame() {
+    // --- 3. CORE INITIALIZATION (REBUILT & SIMPLIFIED) ---
+    async function initializeGame() {
         versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`;
         sound.init();
+        
         const unlockOverlay = document.getElementById('sound-unlock-overlay');
-        unlockOverlay.addEventListener('click', () => { sound.unlock(); initializeData(); }, { once: true });
-    }
+        
+        let dataLoaded = false;
+        let soundUnlocked = false;
 
-    async function initializeData() {
+        function tryStartGame() {
+            // This function will only run when BOTH data is loaded AND the user has tapped the screen.
+            if (dataLoaded && soundUnlocked) {
+                gameWrapper.style.display = 'flex'; // Show the game
+                initGameSession();
+            }
+        }
+
+        unlockOverlay.addEventListener('click', () => {
+            sound.unlock();
+            soundUnlocked = true;
+            tryStartGame();
+        }, { once: true });
+
         try {
-            const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([ fetch('bible_data.json'), fetch('english_dictionary.json'), fetch('romanian_dictionary.json'), ]);
-            if (!bibleRes.ok) throw new Error(`Bible data fetch failed`); if (!dictEngRes.ok) throw new Error(`English dictionary fetch failed`); if (!dictRomRes.ok) throw new Error(`Romanian dictionary fetch failed`);
-            bibleData = await bibleRes.json(); standardDictionaries.english = await dictEngRes.json(); standardDictionaries.romanian = await dictRomRes.json();
+            const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([
+                fetch('bible_data.json'),
+                fetch('english_dictionary.json'),
+                fetch('romanian_dictionary.json'),
+            ]);
+            if (!bibleRes.ok) throw new Error(`Bible data fetch failed`);
+            if (!dictEngRes.ok) throw new Error(`English dictionary fetch failed`);
+            if (!dictRomRes.ok) throw new Error(`Romanian dictionary fetch failed`);
+            
+            bibleData = await bibleRes.json();
+            standardDictionaries.english = await dictEngRes.json();
+            standardDictionaries.romanian = await dictRomRes.json();
+
             console.log("All 3 required game data files successfully loaded.");
-            initGameSession();
+            dataLoaded = true;
+            tryStartGame(); // Attempt to start, in case user has already clicked.
         } catch (error) {
             console.error("CRITICAL ERROR: Could not load game data files.", error);
-            alert("Error: Could not load game data. Please ensure your JSON files are present and correct.");
+            unlockOverlay.innerHTML = `<div id="sound-unlock-content"><h1>Error</h1><p>Could not load game data. Please ensure JSON files are correct and refresh the page.</p></div>`;
         }
     }
 
@@ -82,15 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- 6. RENDERING (Unchanged) ---
     function renderGame() { renderGrid(); renderWordList(); updateStats(); langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english'); langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian'); }
-    function renderGrid() { gridContainer.innerHTML = ''; gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } } addSelectionListeners(); }
+    function renderGrid() { gridContainer.innerHTML = ''; gridContainer.classList.add('loaded'); gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } } addSelectionListeners(); }
     function renderWordList() { wordListUl.innerHTML = ''; const sortedWords = [...gameState.words].sort(); wordColorMap = {}; let shuffledPalette = [...colorPalette].sort(() => 0.5 - Math.random()); sortedWords.forEach((word, index) => { wordColorMap[word] = shuffledPalette[index % shuffledPalette.length]; }); sortedWords.forEach(word => { const li = document.createElement('li'); li.textContent = word; li.id = `word-${word}`; if (gameState.foundWords.includes(word)) { li.classList.add('found'); li.style.backgroundColor = `var(${wordColorMap[word]})`; } li.addEventListener('click', handleHintRequest); wordListUl.appendChild(li); }); }
     function updateStats() { scoreEl.textContent = gameState.score; levelEl.textContent = gameState.level; }
 
-    // --- 7. WORD SELECTION & PROCESSING (REBUILT FOR TOUCH) ---
+    // --- 7. WORD SELECTION & PROCESSING (Unchanged) ---
     let isSelecting = false, selectionStartCell = null, selectedCells = [];
     function addSelectionListeners() { gridContainer.addEventListener('mousedown', handleSelectionStart); gridContainer.addEventListener('mousemove', handleSelectionMove); window.addEventListener('mouseup', handleSelectionEnd); gridContainer.addEventListener('touchstart', handleSelectionStart, { passive: false }); gridContainer.addEventListener('touchmove', handleSelectionMove, { passive: false }); window.addEventListener('touchend', handleSelectionEnd); }
     function getCellFromEvent(e) { if (e.touches && e.touches.length > 0) { const touch = e.touches[0]; return document.elementFromPoint(touch.clientX, touch.clientY); } return e.target; }
-    function handleSelectionStart(e) { e.preventDefault(); sound.unlock(); const targetCell = getCellFromEvent(e); if (targetCell && targetCell.classList.contains('grid-cell')) { isSelecting = true; selectionStartCell = targetCell; highlightLine(selectionStartCell, selectionStartCell); } }
+    function handleSelectionStart(e) { e.preventDefault(); const targetCell = getCellFromEvent(e); if (targetCell && targetCell.classList.contains('grid-cell')) { isSelecting = true; selectionStartCell = targetCell; highlightLine(selectionStartCell, selectionStartCell); } }
     function handleSelectionMove(e) { if (!isSelecting) return; e.preventDefault(); const targetCell = getCellFromEvent(e); if (targetCell && targetCell.classList.contains('grid-cell')) { highlightLine(selectionStartCell, targetCell); } }
     function handleSelectionEnd() { if (!isSelecting) return; isSelecting = false; const selectedWord = selectedCells.map(cell => cell.textContent).join(''); const reversedWord = selectedCells.map(cell => cell.textContent).reverse().join(''); if (gameState.words.includes(selectedWord) && !gameState.foundWords.includes(selectedWord)) { processFoundWord(selectedWord); } else if (gameState.words.includes(reversedWord) && !gameState.foundWords.includes(reversedWord)) { processFoundWord(reversedWord); } else { if (selectedCells.length > 1) sound.play('error'); selectedCells.forEach(cell => cell.classList.remove('selected')); } selectionStartCell = null; }
     function highlightLine(startCell, endCell) { document.querySelectorAll('.grid-cell.selected').forEach(c => c.classList.remove('selected')); selectedCells = []; const start = { r: parseInt(startCell.dataset.row), c: parseInt(startCell.dataset.col) }; const end = { r: parseInt(endCell.dataset.row), c: parseInt(endCell.dataset.col) }; const dR = end.r - start.r, dC = end.c - start.c; if (start.r === end.r || start.c === end.c || Math.abs(dR) === Math.abs(dC)) { const steps = Math.max(Math.abs(dR), Math.abs(dC)); const stepR = Math.sign(dR), stepC = Math.sign(dC); for (let i = 0; i <= steps; i++) { const cell = document.querySelector(`[data-row='${start.r + i * stepR}'][data-col='${start.c + i * stepC}']`); if (cell) { cell.classList.add('selected'); selectedCells.push(cell); } } } }
@@ -137,6 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function startLevel() {
+        gridContainer.classList.remove('loaded');
+        gridContainer.innerHTML = '<div id="loader"></div>';
         completionMessageEl.classList.add('hidden'); verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden'); newGameBtnText.textContent = "New Puzzle";
         gameState.currentLevelData = { level: gameState.level, mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`, time: 0, hintsUsed: 0, pointsEarned: 0, wordsFound: 0, totalWords: 10, completed: false, verseMap: {}, timestamp: new Date().toISOString() };
         if (gameState.bibleMode) {
@@ -157,14 +164,17 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.words = selectedWords.map(w => w.word);
             selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
         } else {
-            gameTitleEl.textContent = "Word Search Wonderland";
-            wordListTitleEl.textContent = "Words to Find:";
+            gameTitleEl.textContent = "Bible Word Search";
+            wordListTitleEl.textContent = "";
             gameState.words = getWordsForPuzzle(10);
         }
         gameState.gridSize = 13 + Math.floor(gameState.level / 3);
         if (gameState.words.length < 10) { alert("Not enough unique words for this level. Trying another level."); gameState.level++; startLevel(); return; }
-        gameState.grid = generatePuzzle();
-        if (gameState.grid) { renderGame(); startTimer(); saveState(); } else { alert("The puzzle generator failed. Let's try creating a new puzzle for this level."); startLevel(); }
+        
+        setTimeout(() => {
+            gameState.grid = generatePuzzle();
+            if (gameState.grid) { renderGame(); startTimer(); saveState(); } else { alert("The puzzle generator failed. Let's try creating a new puzzle for this level."); startLevel(); }
+        }, 50);
     }
     
     function switchLanguage(lang) { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } if (gameState.foundWords && gameState.foundWords.length === gameState.words.length) { gameState.level++; } const currentScore = gameState.score || 0; const isBible = bibleModeCheckbox.checked; createNewGame(lang, isBible, currentScore); }
