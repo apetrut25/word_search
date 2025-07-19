@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- UPDATED: More aggressive zoom lock for all devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bible Word Search</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Sound Unlock Overlay is unchanged -->
     <div id="sound-unlock-overlay">
         <div id="sound-unlock-content">
             <h1>Bible Word Search</h1>
@@ -18,7 +16,6 @@
         </div>
     </div>
 
-    <!-- NEW: Main wrapper for full-screen flex layout -->
     <div id="game-wrapper" style="display: none;">
         <div id="game-container">
             <header id="game-header">
@@ -41,9 +38,11 @@
             </header>
 
             <main id="main-content">
-                <div id="puzzle-grid"></div>
+                <!-- UPDATED: Added a loader element inside the grid -->
+                <div id="puzzle-grid">
+                    <div id="loader"></div>
+                </div>
                 <div id="word-list-container">
-                    <h2 id="word-list-title">Words to Find:</h2>
                     <ul id="words-to-find"></ul>
                 </div>
             </main>
