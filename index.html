@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- UPDATED: More aggressive zoom lock -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bible Word Search</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- NEW: Sound Unlock Overlay for Mobile Devices -->
+    <!-- Sound Unlock Overlay is unchanged -->
     <div id="sound-unlock-overlay">
         <div id="sound-unlock-content">
             <h1>Bible Word Search</h1>
@@ -17,7 +18,9 @@
         </div>
     </div>
 
-    <div id="game-container" style="display: none;"> <!-- Start hidden until user taps overlay -->
+    <div id="game-container" style="display: none;">
+        <!-- MOVED: Version Info is now at the top -->
+        <div id="version-info"></div>
         <h1 id="game-title">Bible Word Search</h1>
         
         <div id="controls">
@@ -70,7 +73,6 @@
         </div>
     </div>
     
-    <div id="version-info"></div>
     <script src="script.js"></script>
 </body>
 </html>

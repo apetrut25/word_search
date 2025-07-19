@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. DOM ELEMENT REFERENCES ---
+    // --- 1. GAME VERSION & CONFIGURATION ---
+    const GAME_VERSION = "1.0.3"; // Updated version for final polish
+    const BUILD_DATE = "2025-07-18";
+
+    // --- DOM ELEMENT REFERENCES ---
     const gameContainer = document.getElementById('game-container'),
         gameTitleEl = document.getElementById('game-title'),
         gridContainer = document.getElementById('puzzle-grid'),
@@ -29,9 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         historyLogEl = document.getElementById('history-log'),
         versionInfoEl = document.getElementById('version-info');
 
-    // --- 2. GAME STATE & CONFIGURATION ---
-    const GAME_VERSION = "1.0.2"; // Updated version for mobile fixes
-    const BUILD_DATE = "2025-07-18";
+    // --- 2. GAME STATE & OTHER VARIABLES ---
     let gameState = {};
     let puzzleTimer;
     let bibleData = {}, standardDictionaries = {};
@@ -39,16 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
-    // --- REBUILT & FIXED: SOUND ENGINE ---
-    const sound = {
-        isMuted: true, audioContext: null, buffers: {}, isUnlocked: false,
-        init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); },
-        unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameContainer.style.display = 'block'; } catch (e) { console.error("Web Audio API is not supported in this browser.", e); gameContainer.style.display = 'block'; } },
-        _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } },
-        _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); },
-        play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); },
-        toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }
-    };
+    // --- SOUND ENGINE ---
+    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) { const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameContainer.style.display = 'block'; return; }; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameContainer.style.display = 'block'; } catch (e) { console.error("Web Audio API is not supported in this browser.", e); gameContainer.style.display = 'block'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
 
     // --- 3. CORE INITIALIZATION ---
     async function initializeGame() {
@@ -71,14 +65,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 4. GAME SESSION & STATE LOGIC (Unchanged) ---
-    function initGameSession() { const savedState = loadState(); if (savedState) { console.log("Found saved state. Resuming game."); gameState = savedState; bibleModeCheckbox.checked = gameState.bibleMode; langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english'); langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian'); renderGame(); if (gameState.foundWords.length === gameState.words.length) { completionMessageEl.classList.remove('hidden'); newGameBtnText.textContent = "Next Level"; } else { startTimer(); } } else { console.log("No saved state found. Starting new game with defaults."); createNewGame('romanian', true, 0); } }
+    // --- 4. GAME SESSION & STATE LOGIC ---
+    function initGameSession() {
+        const savedState = loadState();
+        if (savedState) {
+            console.log("Found saved state. Resuming game.");
+            gameState = savedState;
+            bibleModeCheckbox.checked = gameState.bibleMode;
+            langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english');
+            langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian');
+            renderGame();
+            if (gameState.foundWords.length === gameState.words.length) {
+                completionMessageEl.classList.remove('hidden');
+                newGameBtnText.textContent = "Next Level";
+            } else {
+                startTimer();
+            }
+        } else {
+            console.log("No saved state found. Starting new game with defaults.");
+            createNewGame('romanian', true, 0);
+        }
+    }
     function saveState() { if (gameState) { localStorage.setItem('wordSearchGameState', JSON.stringify(gameState)); } }
     function loadState() { const savedStateJSON = localStorage.getItem('wordSearchGameState'); if (savedStateJSON) { try { return JSON.parse(savedStateJSON); } catch (e) { console.error("Failed to parse saved state, starting fresh.", e); localStorage.removeItem('wordSearchGameState'); return null; } } return null; }
     function saveHistory(levelData) { if (!levelData) return; let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || []; history.push(levelData); localStorage.setItem('wordSearchHistory', JSON.stringify(history)); }
     function displayHistory() { let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || []; historyLogEl.innerHTML = ''; if (history.length === 0) { historyLogEl.innerHTML = '<p>No games completed yet!</p>'; return; } history.slice().reverse().forEach(entry => { const entryDiv = document.createElement('div'); entryDiv.className = 'history-entry'; const date = new Date(entry.timestamp).toLocaleString(); const status = entry.completed ? '' : `<span class="entry-skipped">(Incomplete)</span>`; entryDiv.innerHTML = `<div class="entry-header"><strong>Level ${entry.level} ${status}</strong><span class="entry-date">${date}</span></div><p class="entry-details"><strong>Mode:</strong> ${entry.mode}</p><p class="entry-details"><strong>Time:</strong> ${entry.time}s | <strong>Hints Used:</strong> ${entry.hintsUsed} | <strong>Words Found:</strong> ${entry.wordsFound}/${entry.totalWords} | <strong>Points Earned:</strong> ${entry.pointsEarned}</p>`; historyLogEl.appendChild(entryDiv); }); historyModal.classList.remove('hidden'); }
 
-    // --- 5. PUZZLE GENERATION & TIMER (Unchanged) ---
+    // --- 5. PUZZLE GENERATION & TIMER ---
     function startTimer() { stopTimer(); let seconds = gameState.currentLevelData.time || 0; timerEl.textContent = `${seconds}s`; puzzleTimer = setInterval(() => { seconds++; timerEl.textContent = `${seconds}s`; if (gameState.currentLevelData) gameState.currentLevelData.time = seconds; }, 1000); }
     function stopTimer() { clearInterval(puzzleTimer); }
     function generatePuzzle() { const wordsToPlace = [...gameState.words].sort((a, b) => b.length - a.length); const directions = { horizontal: [{ x: 1, y: 0 }, { x: -1, y: 0 }], vertical: [{ x: 0, y: 1 }, { x: 0, y: -1 }], diagonal: [{ x: 1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }] }; const requiredPlacements = { horizontal: 2, vertical: 2, diagonal: 2 }; const remainingWords = 10 - Object.values(requiredPlacements).reduce((a, b) => a + b); for (let attempt = 0; attempt < 50; attempt++) { let grid = Array.from({ length: gameState.gridSize }, () => Array(gameState.gridSize).fill(null)); gameState.wordLocations = {}; let availableWords = [...wordsToPlace]; let success = true; for (const type in requiredPlacements) { for (let i = 0; i < requiredPlacements[type]; i++) { if (availableWords.length === 0) break; let word = availableWords.shift(); if (!placeWordInGrid(grid, word, directions[type])) { success = false; break; } } if (!success) break; } if (!success) continue; const allDirections = [...directions.horizontal, ...directions.vertical, ...directions.diagonal]; for (let i = 0; i < remainingWords; i++) { if (availableWords.length === 0) break; let word = availableWords.shift(); if (!placeWordInGrid(grid, word, allDirections)) { success = false; break; } } if (!success) continue; fillEmptyCells(grid); return grid; } console.error("Failed to generate puzzle after all attempts."); return null; }
@@ -87,13 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function fillEmptyCells(grid) { const letters = alphabet[gameState.currentLanguage]; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { if (grid[r][c] === null) grid[r][c] = letters[Math.floor(Math.random() * letters.length)]; } } }
     function getWordsForPuzzle(count) { const dictionary = standardDictionaries[gameState.currentLanguage]; if (!dictionary) return []; const allWords = Object.keys(dictionary); const validWords = allWords.filter(word => word.length <= 10 && word.length <= gameState.gridSize); let shuffled = validWords.sort(() => 0.5 - Math.random()); return shuffled.slice(0, count); }
     
-    // --- 6. RENDERING (Unchanged) ---
+    // --- 6. RENDERING ---
     function renderGame() { renderGrid(); renderWordList(); updateStats(); langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english'); langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian'); }
     function renderGrid() { gridContainer.innerHTML = ''; gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } } addSelectionListeners(); }
     function renderWordList() { wordListUl.innerHTML = ''; const sortedWords = [...gameState.words].sort(); wordColorMap = {}; let shuffledPalette = [...colorPalette].sort(() => 0.5 - Math.random()); sortedWords.forEach((word, index) => { wordColorMap[word] = shuffledPalette[index % shuffledPalette.length]; }); sortedWords.forEach(word => { const li = document.createElement('li'); li.textContent = word; li.id = `word-${word}`; if (gameState.foundWords.includes(word)) { li.classList.add('found'); li.style.backgroundColor = `var(${wordColorMap[word]})`; } li.addEventListener('click', handleHintRequest); wordListUl.appendChild(li); }); }
     function updateStats() { scoreEl.textContent = gameState.score; levelEl.textContent = gameState.level; }
 
-    // --- 7. WORD SELECTION & PROCESSING (REBUILT FOR TOUCH) ---
+    // --- 7. WORD SELECTION & PROCESSING ---
     let isSelecting = false, selectionStartCell = null, selectedCells = [];
     function addSelectionListeners() { gridContainer.addEventListener('mousedown', handleSelectionStart); gridContainer.addEventListener('mousemove', handleSelectionMove); window.addEventListener('mouseup', handleSelectionEnd); gridContainer.addEventListener('touchstart', handleSelectionStart, { passive: false }); gridContainer.addEventListener('touchmove', handleSelectionMove, { passive: false }); window.addEventListener('touchend', handleSelectionEnd); }
     function getCellFromEvent(e) { if (e.touches && e.touches.length > 0) { const touch = e.touches[0]; return document.elementFromPoint(touch.clientX, touch.clientY); } return e.target; }
@@ -131,10 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState();
     }
     
-    // --- 8. HINT SYSTEM (Unchanged) ---
+    // --- 8. HINT SYSTEM ---
     function handleHintRequest(e) { const word = e.target.textContent; const hintCost = 75; if (gameState.foundWords.includes(word)) return; if (gameState.score < hintCost) { alert(`Not enough points! A hint costs ${hintCost} points.`); return; } sound.play('hint'); gameState.score -= hintCost; gameState.currentLevelData.pointsEarned -= hintCost; if (gameState.currentLevelData) gameState.currentLevelData.hintsUsed++; updateStats(); saveState(); const location = gameState.wordLocations[word]; if (location) { const hintCell = document.querySelector(`[data-row='${location.r}'][data-col='${location.c}']`); if (hintCell) { hintCell.classList.add('hint'); setTimeout(() => { hintCell.classList.remove('hint'); }, 5000); } } }
 
-    // --- 9. GAME INITIALIZATION & CONTROLS (Unchanged) ---
+    // --- 9. GAME INITIALIZATION & CONTROLS ---
     function createNewGame(language, isBibleMode, score = 0) {
         langEnBtn.classList.toggle('active', language === 'english');
         langRoBtn.classList.toggle('active', language === 'romanian');
@@ -197,6 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
     langEnBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'english') switchLanguage('english'); });
     langRoBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'romanian') switchLanguage('romanian'); });
 
-    // KICK OFF THE ENRE PROCESS
+    // KICK OFF THE ENTIRE PROCESS
     initializeGame();
 });

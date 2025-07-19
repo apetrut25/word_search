@@ -19,13 +19,11 @@
     --found-color-10: #778899;
 }
 
-/* UPDATED: Body styles for centering */
 body {
     margin: 0;
     font-family: var(--font-main);
     background-color: var(--bg-color);
     color: var(--main-text-color);
-    /* Flexbox for perfect centering */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -95,37 +93,18 @@ h1 { font-size: 2rem; margin-bottom: 0.5rem; }
 .history-entry .entry-details { font-size: 0.9rem; }
 .entry-skipped { font-weight: bold; color: var(--warning-color); }
 
-/* --- NEW: Sound Unlock Overlay --- */
-#sound-unlock-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
-    z-index: 200;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-    cursor: pointer;
+/* --- Sound Unlock Overlay --- */
+#sound-unlock-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 200; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; text-align: center; }
+#sound-unlock-content { animation: fadeIn 1.5s ease-in-out; }
+#sound-unlock-content span { display: block; font-size: 4rem; margin-top: 1rem; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+/* --- UPDATED: VERSION INFO --- */
+#version-info {
+    margin-bottom: 0.5rem; /* Space between version and title */
+    font-size: 0.8rem;
+    color: #888;
     text-align: center;
 }
-#sound-unlock-content {
-    animation: fadeIn 1.5s ease-in-out;
-}
-#sound-unlock-content span {
-    display: block;
-    font-size: 4rem;
-    margin-top: 1rem;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
 
-/* --- VERSION INFO --- */
-#version-info { margin-top: 2rem; font-size: 0.8rem; color: #888; text-align: center; }
 @media (min-width: 1024px) and (orientation: landscape) { #main-content { flex-direction: row; align-items: flex-start; justify-content: center; } #puzzle-grid { order: 1; } #word-list-container { order: 2; flex-basis: 300px; flex-shrink: 0; } #words-to-find { flex-direction: column; gap: 0.75rem; } }
