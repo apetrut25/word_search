@@ -19,84 +19,54 @@
     --found-color-10: #778899;
 }
 
-/* UPDATED: Full page control for centering and zoom lock */
-html {
-    height: 100%;
-    overflow: hidden;
-}
-body {
-    margin: 0;
-    font-family: var(--font-main);
-    background-color: var(--bg-color);
-    color: var(--main-text-color);
-    display: flex; /* Centering */
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    padding: 0.5rem;
-    box-sizing: border-box;
-    touch-action: none; /* Disables pinch-zoom and other default touch actions */
-}
+html { height: 100%; overflow: hidden; }
+body { margin: 0; font-family: var(--font-main); background-color: var(--bg-color); color: var(--main-text-color); display: flex; justify-content: center; align-items: center; height: 100%; padding: 0.5rem; box-sizing: border-box; touch-action: none; }
 
 /* --- NEW: FULL SCREEN LAYOUT WRAPPER --- */
-#game-wrapper {
-    width: 100%;
-    height: 100%;
-    max-width: 1200px;
-    max-height: 100vh; /* Ensure it doesn't exceed viewport height */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#game-container {
-    width: 100%;
-    height: 100%;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-}
-#game-header, #game-footer {
-    flex-shrink: 0; /* Header and footer won't shrink */
-}
+#game-wrapper { width: 100%; height: 100%; max-width: 1200px; max-height: 100vh; display: flex; justify-content: center; align-items: center; }
+#game-container { width: 100%; height: 100%; text-align: center; display: flex; flex-direction: column; gap: 0.5rem; }
+#game-header, #game-footer { flex-shrink: 0; }
 #version-info { margin-bottom: 0.5rem; font-size: 0.8rem; color: #888; text-align: center; }
-h1 { font-size: 2rem; margin: 0 0 0.5rem 0; }
+h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 
 /* --- 2. CONTROLS SECTION --- */
-#controls { display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; }
+#controls { display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
 #language-switcher, #game-mode-switcher { display: flex; align-items: center; gap: 0.5rem; }
-#sound-btn, #history-btn, #new-game-btn, #skip-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+#sound-btn, #history-btn, #new-game-btn, #skip-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
 #sound-btn { background-color: transparent; border: 2px solid var(--border-color); }
 #sound-btn:hover { background-color: #ecf0f1; }
 #sound-btn.muted { opacity: 0.5; }
-#sound-icon { width: 24px; height: 24px; display: block; }
+#sound-icon { width: 20px; height: 20px; display: block; }
 #history-btn, #new-game-btn { background-color: var(--primary-color); color: white; padding: 0.6rem 1rem; }
 #skip-btn { background-color: var(--error-color); color: white; padding: 0.6rem 1rem; }
 #history-btn:hover, #new-game-btn:hover, #skip-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 #language-switcher button { padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary-color); background-color: #ecf0f1; color: var(--main-text-color); }
 #language-switcher button.active { background-color: var(--primary-color); color: white; }
-#game-mode-switcher label { font-weight: bold; cursor: pointer; }
+#game-mode-switcher label { font-weight: bold; cursor: pointer; font-size: 0.9rem; }
 
 /* --- 3. MAIN CONTENT (GRID & LIST) --- */
 #main-content {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    flex-grow: 1; /* This is the key: makes this section fill available space */
-    min-height: 0; /* Flexbox bug fix to allow shrinking */
+    flex-grow: 1;
+    min-height: 0;
     align-items: center;
+    flex-shrink: 0; /* Prevents this section from being squashed */
 }
 #puzzle-grid { display: grid; gap: 4px; background-color: var(--bg-color); border: 2px solid var(--border-color); padding: 5px; border-radius: 10px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05); }
-.grid-cell { aspect-ratio: 1 / 1; min-width: 25px; display: flex; justify-content: center; align-items: center; background-color: var(--grid-bg-color); border-radius: 5px; font-family: var(--font-monospace); font-size: clamp(1rem, 3.5vw, 1.8rem); font-weight: bold; text-transform: uppercase; user-select: none; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s; }
+.grid-cell { aspect-ratio: 1 / 1; min-width: 20px; display: flex; justify-content: center; align-items: center; background-color: var(--grid-bg-color); border-radius: 5px; font-family: var(--font-monospace); font-size: clamp(0.8rem, 3vw, 1.5rem); font-weight: bold; text-transform: uppercase; user-select: none; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s; }
 .grid-cell.selected { background-color: var(--accent-color); transform: scale(1.05); }
 .grid-cell.found { border-color: transparent; }
 #word-list-container {
-    padding: 1rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color);
-    overflow-y: auto; /* List will scroll internally if it's too long */
-    max-height: 100%; /* Prevent it from overflowing the main content area */
+    padding: 0.5rem 1rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color);
+    overflow-y: auto;
+    max-height: 100%;
+    flex-shrink: 0; /* Prevents this box from shrinking */
 }
-#words-to-find { list-style-type: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1rem; }
-#words-to-find li { font-size: 1.1rem; padding: 0.5rem 1rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease; }
+#word-list-title { margin: 0.5rem 0; font-size: 1.1rem; }
+#words-to-find { list-style-type: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 0.75rem; }
+#words-to-find li { font-size: 1rem; padding: 0.4rem 0.8rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease; }
 #words-to-find li:not(.found) { cursor: pointer; }
 #words-to-find li:not(.found):hover { background-color: #dde4e6; }
 #words-to-find li.found { text-decoration: line-through; color: var(--main-text-color); opacity: 0.9; }
@@ -104,15 +74,25 @@ h1 { font-size: 2rem; margin: 0 0 0.5rem 0; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(52, 152, 219, 0); } 100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); } }
 
 /* --- 4. FOOTER DISPLAYS --- */
-#verse-display, #definition-display { margin-top: 0.5rem; padding: 0.5rem 1rem; background-color: var(--grid-bg-color); border: 1px dashed var(--primary-color); border-radius: 10px; transition: all 0.5s ease-in-out; opacity: 1; color: #34495e; text-align: left; }
+#game-footer {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Allows this section to fill remaining space */
+    min-height: 0;
+}
+#verse-display, #definition-display {
+    padding: 0.5rem 1rem; background-color: var(--grid-bg-color); border: 1px dashed var(--primary-color); border-radius: 10px; transition: all 0.3s ease-in-out; color: #34495e; text-align: left;
+    max-height: 15vh; /* Set a max height */
+    overflow-y: auto; /* Add a scrollbar if content overflows */
+}
 #verse-display { font-style: italic; }
-#definition-display p { margin: 0; }
-#verse-display.hidden, #definition-display.hidden { opacity: 0; height: 0; padding: 0; margin: 0; border: none; overflow: hidden; }
+#definition-display p { margin: 0; font-size: 0.9rem; }
+#verse-display.hidden, #definition-display.hidden { max-height: 0; opacity: 0; padding: 0; margin: 0; border: none; overflow: hidden; }
 #verse-display strong, #definition-word { background-color: var(--accent-color); padding: 0 4px; border-radius: 3px; color: var(--main-text-color); }
-#stats { margin-top: 0.5rem; font-size: 1.2rem; font-weight: bold; display: flex; justify-content: space-around; flex-wrap: wrap; }
+#stats { margin-top: auto; /* Pushes stats to the bottom */ padding-top: 0.5rem; font-size: 1rem; font-weight: bold; display: flex; justify-content: space-around; flex-wrap: wrap; }
 #completion-message { margin-top: 0.5rem; padding: 1rem; background-color: var(--success-color); color: white; border-radius: 10px; transition: all 0.5s ease-in-out; opacity: 1; transform: scale(1); }
 #completion-message.hidden { opacity: 0; transform: scale(0.9); height: 0; padding: 0; margin: 0; overflow: hidden; }
-#completion-message p { margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: bold; }
+#completion-message p { margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: bold; }
 
 /* --- Sound Unlock Overlay & History Modal --- */
 #sound-unlock-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 200; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; text-align: center; }
@@ -124,26 +104,20 @@ h1 { font-size: 2rem; margin: 0 0 0.5rem 0; }
 .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
 .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
 .history-entry { border-bottom: 1px solid var(--border-color); padding: 10px 5px; }
-.history-entry .entry-header { display: flex; justify-content: space-between; align-items: center; }
 .entry-skipped { font-weight: bold; color: var(--warning-color); }
 
 /* --- LANDSCAPE MEDIA QUERY --- */
 @media (min-width: 700px) and (orientation: landscape) {
+    #game-container { gap: 1rem; }
+    h1 { font-size: 2.5rem; }
     #main-content {
-        flex-direction: row; /* Side-by-side on wide screens */
+        flex-direction: row;
         justify-content: center;
-        align-items: flex-start;
+        align-items: stretch; /* Make children fill height */
         gap: 2rem;
     }
-    #word-list-container {
-        flex-basis: 300px; /* Give word list a fixed width */
-        flex-shrink: 0;
-        height: 100%; /* Allow it to fill the vertical space */
-        max-height: 100%;
-    }
-    #puzzle-grid {
-        /* Make the grid a square that fits the available height */
-        height: 100%;
-        max-height: 100%;
-    }
+    #word-list-container { flex-basis: 300px; flex-shrink: 0; }
+    #puzzle-grid { height: auto; width: auto; max-height: 100%; max-width: 100%; aspect-ratio: 1/1; }
+    #game-footer { flex-grow: 0; }
+    #stats { font-size: 1.2rem; }
 }
