@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.0.8"; // Final bug fix
+    const GAME_VERSION = "1.0.9"; // Final bug fix for removed element
     const BUILD_DATE = "2025-07-18";
-    // FIXED: Removed the non-existent wordListTitleEl
     const gameWrapper = document.getElementById('game-wrapper'), gameContainer = document.getElementById('game-container'), gameTitleEl = document.getElementById('game-title'), gridContainer = document.getElementById('puzzle-grid'), wordListUl = document.getElementById('words-to-find'), scoreEl = document.getElementById('score'), levelEl = document.getElementById('level'), timerEl = document.getElementById('timer'), newGameBtn = document.getElementById('new-game-btn'), newGameBtnText = document.getElementById('new-game-btn-text'), skipBtn = document.getElementById('skip-btn'), soundBtn = document.getElementById('sound-btn'), soundIconEl = document.getElementById('sound-icon'), langEnBtn = document.getElementById('lang-en'), langRoBtn = document.getElementById('lang-ro'), bibleModeCheckbox = document.getElementById('bible-mode-checkbox'), completionMessageEl = document.getElementById('completion-message'), completionDetailsEl = document.getElementById('completion-details'), verseDisplayEl = document.getElementById('verse-display'), definitionDisplayEl = document.getElementById('definition-display'), definitionWordEl = document.getElementById('definition-word'), definitionTextEl = document.getElementById('definition-text'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryBtn = document.getElementById('close-history-btn'), historyLogEl = document.getElementById('history-log'), versionInfoEl = document.getElementById('version-info');
 
     // --- 2. GAME STATE & OTHER VARIABLES ---
@@ -25,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeData();
         }, { once: true });
     }
-
     async function initializeData() {
         try {
             const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([ fetch('bible_data.json'), fetch('english_dictionary.json'), fetch('romanian_dictionary.json'), ]);
@@ -86,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedCells.forEach(cell => { cell.classList.remove('selected'); cell.classList.add('found'); cell.style.backgroundColor = `var(${wordColorVar})`; });
         const wordLi = document.getElementById(`word-${word}`);
         wordLi.classList.add('found');
-        wordLi.style.backgroundColor = `var(${wordColorVar})`;
+        wordLi.style.backgroundColor = `var(${wordColorMap[word]})`;
         updateStats();
         if (gameState.foundWords.length === gameState.words.length) {
             sound.play('complete');
@@ -126,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
             const { book, chapterNum } = chapterInfo;
             const chapterData = langBibleData[book][chapterNum];
-            // FIXED: No longer tries to change the text of the removed title
             let wordsWithVerses = [];
             for (const verseNum in chapterData) { const verseText = chapterData[verseNum]; const wordsInVerse = verseText.toUpperCase().match(/[A-ZĂÂÎȘȚ]+/g) || []; wordsInVerse.forEach(word => { if (word.length > 3 && word.length <= 10) { wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum }); } }); }
             const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
@@ -136,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
         } else {
             gameTitleEl.textContent = "Word Search Wonderland";
-            // FIXED: No longer tries to change the text of the removed title
             gameState.words = getWordsForPuzzle(10);
         }
         gameState.gridSize = 13 + Math.floor(gameState.level / 3);
