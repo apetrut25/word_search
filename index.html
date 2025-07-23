@@ -20,7 +20,7 @@
         <div id="game-container">
             <header id="game-header">
                 <div id="version-info"></div>
-                <h1 id="game-title">Bible Word Search</h1>
+                <h1 id="game-title">Word Search Wonderland</h1>
                 <div id="controls">
                     <div id="language-switcher">
                         <button id="lang-en" class="active">English</button>
@@ -30,6 +30,12 @@
                         <input type="checkbox" id="bible-mode-checkbox">
                         <label for="bible-mode-checkbox">Bible Mode</label>
                     </div>
+                    <!-- NEW: Grid Size Control -->
+                    <div id="grid-size-control">
+                        <label for="grid-size-slider">Grid Size:</label>
+                        <input type="range" id="grid-size-slider" min="10" max="16" value="13">
+                        <span id="grid-size-value">13 x 13</span>
+                    </div>
                     <button id="sound-btn"><img id="sound-icon" src="volume.png" alt="Sound On"></button>
                     <button id="history-btn">History</button>
                     <button id="skip-btn">Skip Puzzle</button>
@@ -38,7 +44,6 @@
             </header>
 
             <main id="main-content">
-                <!-- UPDATED: Added a loader element inside the grid -->
                 <div id="puzzle-grid">
                     <div id="loader"></div>
                 </div>
