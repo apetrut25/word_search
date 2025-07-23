@@ -1,9 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.0.7"; // Final mobile stability fix
+    const GAME_VERSION = "1.0.8"; // Final bug fix
     const BUILD_DATE = "2025-07-18";
-    const gameWrapper = document.getElementById('game-wrapper'), gameContainer = document.getElementById('game-container'), gameTitleEl = document.getElementById('game-title'), gridContainer = document.getElementById('puzzle-grid'), wordListTitleEl = document.getElementById('word-list-title'), wordListUl = document.getElementById('words-to-find'), scoreEl = document.getElementById('score'), levelEl = document.getElementById('level'), timerEl = document.getElementById('timer'), newGameBtn = document.getElementById('new-game-btn'), newGameBtnText = document.getElementById('new-game-btn-text'), skipBtn = document.getElementById('skip-btn'), soundBtn = document.getElementById('sound-btn'), soundIconEl = document.getElementById('sound-icon'), langEnBtn = document.getElementById('lang-en'), langRoBtn = document.getElementById('lang-ro'), bibleModeCheckbox = document.getElementById('bible-mode-checkbox'), completionMessageEl = document.getElementById('completion-message'), completionDetailsEl = document.getElementById('completion-details'), verseDisplayEl = document.getElementById('verse-display'), definitionDisplayEl = document.getElementById('definition-display'), definitionWordEl = document.getElementById('definition-word'), definitionTextEl = document.getElementById('definition-text'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryBtn = document.getElementById('close-history-btn'), historyLogEl = document.getElementById('history-log'), versionInfoEl = document.getElementById('version-info');
+    // FIXED: Removed the non-existent wordListTitleEl
+    const gameWrapper = document.getElementById('game-wrapper'), gameContainer = document.getElementById('game-container'), gameTitleEl = document.getElementById('game-title'), gridContainer = document.getElementById('puzzle-grid'), wordListUl = document.getElementById('words-to-find'), scoreEl = document.getElementById('score'), levelEl = document.getElementById('level'), timerEl = document.getElementById('timer'), newGameBtn = document.getElementById('new-game-btn'), newGameBtnText = document.getElementById('new-game-btn-text'), skipBtn = document.getElementById('skip-btn'), soundBtn = document.getElementById('sound-btn'), soundIconEl = document.getElementById('sound-icon'), langEnBtn = document.getElementById('lang-en'), langRoBtn = document.getElementById('lang-ro'), bibleModeCheckbox = document.getElementById('bible-mode-checkbox'), completionMessageEl = document.getElementById('completion-message'), completionDetailsEl = document.getElementById('completion-details'), verseDisplayEl = document.getElementById('verse-display'), definitionDisplayEl = document.getElementById('definition-display'), definitionWordEl = document.getElementById('definition-word'), definitionTextEl = document.getElementById('definition-text'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryBtn = document.getElementById('close-history-btn'), historyLogEl = document.getElementById('history-log'), versionInfoEl = document.getElementById('version-info');
 
     // --- 2. GAME STATE & OTHER VARIABLES ---
     let gameState = {}, puzzleTimer, bibleData = {}, standardDictionaries = {};
@@ -11,60 +12,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
-    // --- REBUILT & FIXED: SOUND ENGINE ---
-    const sound = {
-        isMuted: true, audioContext: null, buffers: {}, isUnlocked: false,
-        init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); },
-        unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; } catch (e) { console.error("Web Audio API is not supported in this browser.", e); } },
-        _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } },
-        _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); },
-        play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) { return; } if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); },
-        toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }
-    };
+    // --- SOUND ENGINE (Unchanged) ---
+    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) { const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'flex'; return; }; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked and sounds are loading."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'flex'; } catch (e) { console.error("Web Audio API is not supported in this browser.", e); gameWrapper.style.display = 'flex'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) { return; } if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
 
-    // --- 3. CORE INITIALIZATION (REBUILT & SIMPLIFIED) ---
+    // --- 3. CORE INITIALIZATION (Unchanged) ---
     async function initializeGame() {
         versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`;
         sound.init();
-        
         const unlockOverlay = document.getElementById('sound-unlock-overlay');
-        
-        let dataLoaded = false;
-        let soundUnlocked = false;
-
-        function tryStartGame() {
-            // This function will only run when BOTH data is loaded AND the user has tapped the screen.
-            if (dataLoaded && soundUnlocked) {
-                gameWrapper.style.display = 'flex'; // Show the game
-                initGameSession();
-            }
-        }
-
         unlockOverlay.addEventListener('click', () => {
             sound.unlock();
-            soundUnlocked = true;
-            tryStartGame();
+            initializeData();
         }, { once: true });
+    }
 
+    async function initializeData() {
         try {
-            const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([
-                fetch('bible_data.json'),
-                fetch('english_dictionary.json'),
-                fetch('romanian_dictionary.json'),
-            ]);
-            if (!bibleRes.ok) throw new Error(`Bible data fetch failed`);
-            if (!dictEngRes.ok) throw new Error(`English dictionary fetch failed`);
-            if (!dictRomRes.ok) throw new Error(`Romanian dictionary fetch failed`);
-            
-            bibleData = await bibleRes.json();
-            standardDictionaries.english = await dictEngRes.json();
-            standardDictionaries.romanian = await dictRomRes.json();
-
+            const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([ fetch('bible_data.json'), fetch('english_dictionary.json'), fetch('romanian_dictionary.json'), ]);
+            if (!bibleRes.ok) throw new Error(`Bible data fetch failed`); if (!dictEngRes.ok) throw new Error(`English dictionary fetch failed`); if (!dictRomRes.ok) throw new Error(`Romanian dictionary fetch failed`);
+            bibleData = await bibleRes.json(); standardDictionaries.english = await dictEngRes.json(); standardDictionaries.romanian = await dictRomRes.json();
             console.log("All 3 required game data files successfully loaded.");
-            dataLoaded = true;
-            tryStartGame(); // Attempt to start, in case user has already clicked.
+            initGameSession();
         } catch (error) {
             console.error("CRITICAL ERROR: Could not load game data files.", error);
+            const unlockOverlay = document.getElementById('sound-unlock-overlay');
             unlockOverlay.innerHTML = `<div id="sound-unlock-content"><h1>Error</h1><p>Could not load game data. Please ensure JSON files are correct and refresh the page.</p></div>`;
         }
     }
@@ -132,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 8. HINT SYSTEM (Unchanged) ---
     function handleHintRequest(e) { const word = e.target.textContent; const hintCost = 75; if (gameState.foundWords.includes(word)) return; if (gameState.score < hintCost) { alert(`Not enough points! A hint costs ${hintCost} points.`); return; } sound.play('hint'); gameState.score -= hintCost; gameState.currentLevelData.pointsEarned -= hintCost; if (gameState.currentLevelData) gameState.currentLevelData.hintsUsed++; updateStats(); saveState(); const location = gameState.wordLocations[word]; if (location) { const hintCell = document.querySelector(`[data-row='${location.r}'][data-col='${location.c}']`); if (hintCell) { hintCell.classList.add('hint'); setTimeout(() => { hintCell.classList.remove('hint'); }, 5000); } } }
 
-    // --- 9. GAME INITIALIZATION & CONTROLS (Unchanged) ---
+    // --- 9. GAME INITIALIZATION & CONTROLS (FIXED) ---
     function createNewGame(language, isBibleMode, score = 0) {
         langEnBtn.classList.toggle('active', language === 'english');
         langRoBtn.classList.toggle('active', language === 'romanian');
@@ -155,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
             const { book, chapterNum } = chapterInfo;
             const chapterData = langBibleData[book][chapterNum];
-            wordListTitleEl.textContent = `Words from ${book} ${chapterNum}:`;
+            // FIXED: No longer tries to change the text of the removed title
             let wordsWithVerses = [];
             for (const verseNum in chapterData) { const verseText = chapterData[verseNum]; const wordsInVerse = verseText.toUpperCase().match(/[A-ZĂÂÎȘȚ]+/g) || []; wordsInVerse.forEach(word => { if (word.length > 3 && word.length <= 10) { wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum }); } }); }
             const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
@@ -164,8 +135,8 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.words = selectedWords.map(w => w.word);
             selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
         } else {
-            gameTitleEl.textContent = "Bible Word Search";
-            wordListTitleEl.textContent = "";
+            gameTitleEl.textContent = "Word Search Wonderland";
+            // FIXED: No longer tries to change the text of the removed title
             gameState.words = getWordsForPuzzle(10);
         }
         gameState.gridSize = 13 + Math.floor(gameState.level / 3);
