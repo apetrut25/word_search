@@ -15,28 +15,19 @@
 html, body { margin: 0; padding: 0; font-family: var(--font-main); background-color: var(--bg-color); color: var(--main-text-color); }
 body { padding: 0.5rem; box-sizing: border-box; }
 #game-wrapper { width: 100%; max-width: 900px; margin: 0 auto; }
-#game-container { width: 100%; text-align: center; }
+#game-container { width: 100%; text-align: center; display: flex; flex-direction: column; gap: 0.5rem; }
 
-/* --- 2. HEADER & OPTIONS (REBUILT) --- */
+/* --- 2. HEADER & OPTIONS --- */
 #game-header {
-    position: relative; /* Needed for absolute positioning of the toggle button */
-    padding: 0 0 0.5rem 0; /* Reduced padding */
-    margin-bottom: 0.5rem;
+    position: relative;
+    padding: 0 0 0.5rem 0;
+    /* UPDATED: Removed margin-bottom to reduce space */
 }
-#title-bar {
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 0.5rem;
-    padding: 0 50px; /* Add padding to prevent overlap with the toggle button */
-}
+#title-bar { display: flex; justify-content: center; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem; }
 h1 { font-size: 1.5rem; margin: 0; }
 #version-info { font-size: 0.8rem; color: #888; }
-
 #options-toggle {
-    position: absolute; /* Take it out of the document flow */
-    top: 0;
-    left: 0;
+    position: absolute; top: 0; left: 0;
     display: flex; align-items: center; justify-content: center;
     width: 34px; height: 34px;
     background-color: transparent; border: 2px solid var(--border-color); border-radius: 50%;
@@ -45,24 +36,22 @@ h1 { font-size: 1.5rem; margin: 0; }
 #options-toggle:hover { background-color: #eaf5ff; }
 #options-arrow { transition: transform 0.3s ease-in-out; }
 #options-drawer.expanded #options-arrow { transform: rotate(180deg); }
-
 #options-drawer { display: grid; grid-template-rows: 0fr; transition: all 0.3s ease-in-out; opacity: 0; }
 #options-drawer.expanded { grid-template-rows: 1fr; opacity: 1; padding-top: 0.5rem; }
 #options-drawer > div { overflow: hidden; }
+
 #controls {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     justify-items: center; align-items: center;
     padding: 1rem; gap: 1rem;
     background-color: #eaf5ff; border-radius: 10px;
-    margin-bottom: 0; /* No margin */
 }
 #language-switcher, #game-mode-switcher { display: flex; align-items: center; gap: 0.5rem; }
-#sound-btn, #history-btn, #new-game-btn, #clear-cache-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+#sound-btn, #history-btn, #new-game-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
 #sound-btn { background-color: transparent; border: 2px solid var(--border-color); }
 #sound-btn.muted { opacity: 0.5; }
 #sound-icon { width: 20px; height: 20px; display: block; }
 #history-btn, #new-game-btn { background-color: var(--primary-color); color: white; padding: 0.6rem 1rem; }
-#clear-cache-btn { background-color: var(--warning-color); color: white; padding: 0.6rem 1rem; }
 #language-switcher button { padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary-color); background-color: #ecf0f1; color: var(--main-text-color); }
 #language-switcher button.active { background-color: var(--primary-color); color: white; }
 #game-mode-switcher label { font-weight: bold; cursor: pointer; font-size: 0.9rem; }
@@ -93,15 +82,8 @@ h1 { font-size: 1.5rem; margin: 0; }
 #completion-message { margin-top: 1rem; padding: 1rem; background-color: var(--success-color); color: white; border-radius: 10px; transition: all 0.5s ease-in-out; opacity: 1; transform: scale(1); }
 #completion-message.hidden { display: none; }
 #sound-unlock-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 200; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; text-align: center; }
-#sound-unlock-content span {
-    display: block; font-size: 4rem; margin-top: 1rem;
-    animation: pulse-icon 2s infinite ease-in-out; /* RESTORED ANIMATION */
-}
-@keyframes pulse-icon {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
+#sound-unlock-content span { display: block; font-size: 4rem; margin-top: 1rem; animation: pulse-icon 2s infinite ease-in-out; }
+@keyframes pulse-icon { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 #history-modal { position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; }
 #history-modal.hidden { display: none; }
 .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
