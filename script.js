@@ -1,11 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.2.1"; // Final branding and layout polish
+    const GAME_VERSION = "1.3.0"; // Final UI: Collapsible Options
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
         gameTitleEl = document.getElementById('game-title'),
+        optionsToggle = document.getElementById('options-toggle'), // NEW
+        optionsDrawer = document.getElementById('options-drawer'), // NEW
         gridContainer = document.getElementById('puzzle-grid'),
         wordListUl = document.getElementById('words-to-find'),
         scoreEl = document.getElementById('score'),
@@ -74,13 +76,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function fillEmptyCells(grid) { const letters = alphabet[gameState.currentLanguage]; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { if (grid[r][c] === null) grid[r][c] = letters[Math.floor(Math.random() * letters.length)]; } } }
     function getWordsForPuzzle(count) { const dictionary = standardDictionaries[gameState.currentLanguage]; if (!dictionary) return []; const allWords = Object.keys(dictionary); const validWords = allWords.filter(word => word.length <= gameState.gridSize); let shuffled = validWords.sort(() => 0.5 - Math.random()); return shuffled.slice(0, count); }
     
-    // --- 6. RENDERING ---
+    // --- 6. RENDERING (Unchanged) ---
     function renderGame() { renderGrid(); renderWordList(); updateStats(); langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english'); langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian'); }
     function renderGrid() { gridContainer.style.setProperty('--grid-size', gameState.gridSize); gridContainer.innerHTML = ''; gridContainer.classList.add('loaded'); gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } } addSelectionListeners(); }
     function renderWordList() { wordListUl.innerHTML = ''; const sortedWords = [...gameState.words].sort(); wordColorMap = {}; let shuffledPalette = [...colorPalette].sort(() => 0.5 - Math.random()); sortedWords.forEach((word, index) => { wordColorMap[word] = shuffledPalette[index % shuffledPalette.length]; }); sortedWords.forEach(word => { const li = document.createElement('li'); li.textContent = word; li.id = `word-${word}`; if (gameState.foundWords.includes(word)) { li.classList.add('found'); li.style.backgroundColor = `var(${wordColorMap[word]})`; } li.addEventListener('click', handleHintRequest); wordListUl.appendChild(li); }); }
     function updateStats() { scoreEl.textContent = gameState.score; levelEl.textContent = gameState.level; }
 
-    // --- 7. WORD SELECTION & PROCESSING ---
+    // --- 7. WORD SELECTION & PROCESSING (Unchanged) ---
     let isSelecting = false, selectionStartCell = null, selectedCells = [];
     function addSelectionListeners() { gridContainer.addEventListener('mousedown', handleSelectionStart); gridContainer.addEventListener('mousemove', handleSelectionMove); window.addEventListener('mouseup', handleSelectionEnd); gridContainer.addEventListener('touchstart', handleSelectionStart, { passive: false }); gridContainer.addEventListener('touchmove', handleSelectionMove, { passive: false }); window.addEventListener('touchend', handleSelectionEnd); }
     function getCellFromEvent(e) { if (e.touches && e.touches.length > 0) { const touch = e.touches[0]; return document.elementFromPoint(touch.clientX, touch.clientY); } return e.target; }
@@ -88,48 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleSelectionMove(e) { if (!isSelecting) return; e.preventDefault(); const targetCell = getCellFromEvent(e); if (targetCell && targetCell.classList.contains('grid-cell')) { highlightLine(selectionStartCell, targetCell); } }
     function handleSelectionEnd() { if (!isSelecting) return; isSelecting = false; const selectedWord = selectedCells.map(cell => cell.textContent).join(''); const reversedWord = selectedCells.map(cell => cell.textContent).reverse().join(''); if (gameState.words.includes(selectedWord) && !gameState.foundWords.includes(selectedWord)) { processFoundWord(selectedWord); } else if (gameState.words.includes(reversedWord) && !gameState.foundWords.includes(reversedWord)) { processFoundWord(reversedWord); } else { if (selectedCells.length > 1) sound.play('error'); selectedCells.forEach(cell => cell.classList.remove('selected')); } selectionStartCell = null; }
     function highlightLine(startCell, endCell) { document.querySelectorAll('.grid-cell.selected').forEach(c => c.classList.remove('selected')); selectedCells = []; const start = { r: parseInt(startCell.dataset.row), c: parseInt(startCell.dataset.col) }; const end = { r: parseInt(endCell.dataset.row), c: parseInt(endCell.dataset.col) }; const dR = end.r - start.r, dC = end.c - start.c; if (start.r === end.r || start.c === end.c || Math.abs(dR) === Math.abs(dC)) { const steps = Math.max(Math.abs(dR), Math.abs(dC)); const stepR = Math.sign(dR), stepC = Math.sign(dC); for (let i = 0; i <= steps; i++) { const cell = document.querySelector(`[data-row='${start.r + i * stepR}'][data-col='${start.c + i * stepC}']`); if (cell) { cell.classList.add('selected'); selectedCells.push(cell); } } } }
+    function processFoundWord(word) { if (gameState.foundWords.includes(word)) return; sound.play('correct'); const points = word.length * 10; gameState.foundWords.push(word); gameState.score += points; gameState.currentLevelData.pointsEarned += points; gameState.currentLevelData.wordsFound = gameState.foundWords.length; verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden'); if (gameState.bibleMode && gameState.currentLevelData.verseMap[word]) { const verseInfo = gameState.currentLevelData.verseMap[word]; const verseText = bibleData[gameState.currentLanguage][verseInfo.book][verseInfo.chapter][verseInfo.verse]; verseDisplayEl.innerHTML = `${verseInfo.book} ${verseInfo.chapter}:${verseInfo.verse} - ${verseText.replace(new RegExp(word, 'i'), `<strong>$&</strong>`)}`; verseDisplayEl.classList.remove('hidden'); } else if (!gameState.bibleMode) { const definition = standardDictionaries[gameState.currentLanguage][word]; if (definition) { definitionWordEl.textContent = word; definitionTextEl.textContent = definition; definitionDisplayEl.classList.remove('hidden'); } } const wordColorVar = wordColorMap[word]; selectedCells.forEach(cell => { cell.classList.remove('selected'); cell.classList.add('found'); cell.style.backgroundColor = `var(${wordColorVar})`; }); const wordLi = document.getElementById(`word-${word}`); wordLi.classList.add('found'); wordLi.style.backgroundColor = `var(${wordColorVar})`; updateStats(); if (gameState.foundWords.length === gameState.words.length) { sound.play('complete'); stopTimer(); gameState.currentLevelData.completed = true; completionDetailsEl.textContent = `You earned ${gameState.currentLevelData.pointsEarned} points!`; completionMessageEl.classList.remove('hidden'); saveHistory(gameState.currentLevelData); newGameBtnText.textContent = "Next Level"; } saveState(); }
     
-    function processFoundWord(word) {
-        if (gameState.foundWords.includes(word)) return;
-        sound.play('correct');
-        const points = word.length * 10;
-        gameState.foundWords.push(word);
-        gameState.score += points;
-        gameState.currentLevelData.pointsEarned += points;
-        gameState.currentLevelData.wordsFound = gameState.foundWords.length;
-        verseDisplayEl.classList.add('hidden');
-        definitionDisplayEl.classList.add('hidden');
-        if (gameState.bibleMode && gameState.currentLevelData.verseMap[word]) { const verseInfo = gameState.currentLevelData.verseMap[word]; const verseText = bibleData[gameState.currentLanguage][verseInfo.book][verseInfo.chapter][verseInfo.verse]; verseDisplayEl.innerHTML = `${verseInfo.book} ${verseInfo.chapter}:${verseInfo.verse} - ${verseText.replace(new RegExp(word, 'i'), `<strong>$&</strong>`)}`; verseDisplayEl.classList.remove('hidden'); } else if (!gameState.bibleMode) { const definition = standardDictionaries[gameState.currentLanguage][word]; if (definition) { definitionWordEl.textContent = word; definitionTextEl.textContent = definition; definitionDisplayEl.classList.remove('hidden'); } }
-        const wordColorVar = wordColorMap[word];
-        selectedCells.forEach(cell => { cell.classList.remove('selected'); cell.classList.add('found'); cell.style.backgroundColor = `var(${wordColorVar})`; });
-        const wordLi = document.getElementById(`word-${word}`);
-        wordLi.classList.add('found');
-        wordLi.style.backgroundColor = `var(${wordColorVar})`;
-        updateStats();
-        if (gameState.foundWords.length === gameState.words.length) {
-            sound.play('complete');
-            stopTimer();
-            gameState.currentLevelData.completed = true;
-            completionDetailsEl.textContent = `You earned ${gameState.currentLevelData.pointsEarned} points!`;
-            completionMessageEl.classList.remove('hidden');
-            saveHistory(gameState.currentLevelData);
-            newGameBtnText.textContent = "Next Level";
-        }
-        saveState();
-    }
-    
-    // --- 8. HINT SYSTEM ---
+    // --- 8. HINT SYSTEM (Unchanged) ---
     function handleHintRequest(e) { const word = e.target.textContent; const hintCost = 75; if (gameState.foundWords.includes(word)) return; if (gameState.score < hintCost) { alert(`Not enough points! A hint costs ${hintCost} points.`); return; } sound.play('hint'); gameState.score -= hintCost; gameState.currentLevelData.pointsEarned -= hintCost; if (gameState.currentLevelData) gameState.currentLevelData.hintsUsed++; updateStats(); saveState(); const location = gameState.wordLocations[word]; if (location) { const hintCell = document.querySelector(`[data-row='${location.r}'][data-col='${location.c}']`); if (hintCell) { hintCell.classList.add('hint'); setTimeout(() => { hintCell.classList.remove('hint'); }, 1500); } } }
 
-    // --- 9. GAME INITIALIZATION & CONTROLS ---
-    function createNewGame(language, isBibleMode, score = 0) {
-        langEnBtn.classList.toggle('active', language === 'english');
-        langRoBtn.classList.toggle('active', language === 'romanian');
-        bibleModeCheckbox.checked = isBibleMode;
-        gameState = { level: 1, score: score, currentLanguage: language, bibleMode: isBibleMode, words: [], wordLocations: {}, grid: [], foundWords: [], currentLevelData: null, bibleChapterPlaylist: [] };
-        startLevel();
-    }
-    
+    // --- 9. GAME INITIALIZATION & CONTROLS (Unchanged) ---
+    function createNewGame(language, isBibleMode, score = 0) { langEnBtn.classList.toggle('active', language === 'english'); langRoBtn.classList.toggle('active', language === 'romanian'); bibleModeCheckbox.checked = isBibleMode; gameState = { level: 1, score: score, currentLanguage: language, bibleMode: isBibleMode, words: [], wordLocations: {}, grid: [], foundWords: [], currentLevelData: null, bibleChapterPlaylist: [] }; startLevel(); }
     function startLevel() {
         gridContainer.classList.remove('loaded');
         gridContainer.innerHTML = '<div id="loader"></div>';
@@ -137,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.gridSize = parseInt(gridSizeSlider.value);
         gameState.currentLevelData = { level: gameState.level, mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`, time: 0, hintsUsed: 0, pointsEarned: 0, wordsFound: 0, totalWords: 10, completed: false, verseMap: {}, timestamp: new Date().toISOString() };
         
-        // UPDATED: Set title based on mode
         if (gameState.bibleMode) {
             gameTitleEl.textContent = "Bible Word Search";
             const langBibleData = bibleData[gameState.currentLanguage];
@@ -145,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) { const allChapters = []; for (const book in langBibleData) { for (const chapterNum in langBibleData[book]) { allChapters.push({ book, chapterNum }); } } gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random()); }
             if (gameState.bibleChapterPlaylist.length === 0) { alert(`No chapters found. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
             const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
-            // ... (rest of Bible word selection is unchanged)
             const { book, chapterNum } = chapterInfo;
             const chapterData = langBibleData[book][chapterNum];
             let wordsWithVerses = [];
@@ -155,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedWords = shuffledWords.slice(0, 10);
             gameState.words = selectedWords.map(w => w.word);
             selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
-
         } else {
             gameTitleEl.textContent = "Bible Word Search"; // UPDATED
             gameState.words = getWordsForPuzzle(10);
@@ -182,6 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
     langEnBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'english') switchLanguage('english'); });
     langRoBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'romanian') switchLanguage('romanian'); });
     gridSizeSlider.addEventListener('input', (e) => { const size = e.target.value; gridSizeValue.textContent = `${size} x ${size}`; localStorage.setItem('wordSearchGridSize', size); });
+
+    // NEW: Add the options toggle listener
+    optionsToggle.addEventListener('click', () => {
+        optionsDrawer.classList.toggle('expanded');
+    });
 
     // KICK OFF THE ENTIRE PROCESS
     initializeGame();

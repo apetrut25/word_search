@@ -11,12 +11,6 @@
     --border-color: #bdc3c7;
     --font-main: 'Helvetica Neue', 'Arial', sans-serif;
     --font-monospace: 'Courier New', 'monospace';
-
-    /* Color palette for found word highlights */
-    --found-color-1: #90ee90; --found-color-2: #add8e6; --found-color-3: #f08080;
-    --found-color-4: #e0ffff; --found-color-5: #fafad2; --found-color-6: #d3d3d3;
-    --found-color-7: #ffb6c1; --found-color-8: #ffa07a; --found-color-9: #87cefa;
-    --found-color-10: #778899;
 }
 
 html, body { margin: 0; padding: 0; font-family: var(--font-main); background-color: var(--bg-color); color: var(--main-text-color); }
@@ -29,22 +23,70 @@ body { padding: 0.5rem; box-sizing: border-box; }
 #version-info { margin-bottom: 0.5rem; font-size: 0.8rem; color: #888; text-align: center; }
 h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 
-/* --- 2. CONTROLS SECTION --- */
-#controls { display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem 1rem; }
-#language-switcher, #game-mode-switcher { display: flex; align-items: center; gap: 0.5rem; }
+/* --- 2. OPTIONS DRAWER & CONTROLS --- */
+#options-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    margin: 0 auto 1rem auto;
+    padding: 0.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    background-color: transparent;
+    border: 2px solid var(--primary-color);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+#options-toggle:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+#options-arrow {
+    transition: transform 0.3s ease-in-out;
+}
+#options-drawer.expanded #options-arrow {
+    transform: rotate(180deg);
+}
+
+#options-drawer {
+    display: grid;
+    grid-template-rows: 0fr; /* Collapsed by default */
+    transition: grid-template-rows 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    opacity: 0;
+}
+#options-drawer.expanded {
+    grid-template-rows: 1fr; /* Expanded state */
+    opacity: 1;
+}
+#options-drawer > div {
+    overflow: hidden; /* This is crucial for the animation */
+}
+
+#controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    justify-items: center;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+    background-color: #eaf5ff;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+#language-switcher, #game-mode-switcher, #grid-size-control { display: flex; align-items: center; gap: 0.5rem; }
 #sound-btn, #history-btn, #new-game-btn, #skip-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
 #sound-btn { background-color: transparent; border: 2px solid var(--border-color); }
-#sound-btn:hover { background-color: #ecf0f1; }
 #sound-btn.muted { opacity: 0.5; }
 #sound-icon { width: 20px; height: 20px; display: block; }
 #history-btn, #new-game-btn { background-color: var(--primary-color); color: white; padding: 0.6rem 1rem; }
 #skip-btn { background-color: var(--error-color); color: white; padding: 0.6rem 1rem; }
-#history-btn:hover, #new-game-btn:hover, #skip-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 #language-switcher button { padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary-color); background-color: #ecf0f1; color: var(--main-text-color); }
 #language-switcher button.active { background-color: var(--primary-color); color: white; }
 #game-mode-switcher label { font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-#grid-size-control { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: bold; }
-#grid-size-slider { cursor: pointer; }
+#grid-size-control { font-size: 0.9rem; font-weight: bold; }
 #grid-size-value { min-width: 55px; text-align: left; }
 
 /* --- 3. MAIN CONTENT (GRID & LIST) --- */
@@ -53,34 +95,12 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 #puzzle-grid.loaded { display: grid; }
 #loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.grid-cell {
-    aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center; background-color: var(--grid-bg-color); border-radius: 5px; font-family: var(--font-monospace);
-    font-size: clamp(0.5rem, calc(80vw / var(--grid-size, 13) / 2.5), 1.8rem);
-    font-weight: bold; text-transform: uppercase; user-select: none; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s;
-}
-
+.grid-cell { aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center; background-color: var(--grid-bg-color); border-radius: 5px; font-family: var(--font-monospace); font-size: clamp(0.5rem, calc(80vw / var(--grid-size, 13) / 2.5), 1.8rem); font-weight: bold; text-transform: uppercase; user-select: none; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s; }
 .grid-cell.selected { background-color: var(--accent-color); transform: scale(1.05); }
 .grid-cell.found { border-color: transparent; }
-
-/* UPDATED: Word List Layout is now fully flexible */
-#word-list-container {
-    padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color);
-    width: 100%; box-sizing: border-box;
-}
-#words-to-find {
-    list-style-type: none; padding: 0; margin: 0;
-    display: flex;
-    flex-wrap: wrap; /* This is the key for dynamic rows */
-    justify-content: center;
-    align-items: center;
-    gap: 0.25rem 0.75rem;
-}
-#words-to-find li {
-    /* UPDATED: Font size is now proportional to grid size */
-    font-size: clamp(0.7rem, calc(70vw / var(--grid-size, 13) / 2.5), 1.2rem);
-    padding: 0.4rem 0.8rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease;
-}
+#word-list-container { padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box; }
+#words-to-find { list-style-type: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.25rem 0.75rem; }
+#words-to-find li { font-size: clamp(0.7rem, calc(70vw / var(--grid-size, 13) / 2.5), 1.2rem); padding: 0.4rem 0.8rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease; }
 #words-to-find li:not(.found) { cursor: pointer; }
 #words-to-find li:not(.found):hover { background-color: #dde4e6; }
 #words-to-find li.found { text-decoration: line-through; color: var(--main-text-color); opacity: 0.9; }
