@@ -1,4 +1,4 @@
-/* --- 1. ROOT VARIABLES & GLOBAL STYLES --- */
+/* --- 1. ROOT & BODY STYLES --- */
 :root {
     --bg-color: #F0F8FF;
     --main-text-color: #2c3e50;
@@ -12,33 +12,64 @@
     --font-main: 'Helvetica Neue', 'Arial', sans-serif;
     --font-monospace: 'Courier New', 'monospace';
 }
-html, body { margin: 0; padding: 0; font-family: var(--font-main); background-color: var(--bg-color); color: var(--main-text-color); }
+html, body { margin: 0; padding: 0; font-family: var(--font-main); background-color: var(--bg-color); color: var(--main-text-color); height: 100%; overflow: hidden; }
 body { padding: 0.5rem; box-sizing: border-box; }
-#game-wrapper { width: 100%; max-width: 900px; margin: 0 auto; }
-#game-container { width: 100%; text-align: center; display: flex; flex-direction: column; gap: 0.5rem; }
 
-/* --- 2. HEADER & OPTIONS --- */
+/* --- 2. LAYOUT & CONTAINER (REBUILT WITH CSS GRID) --- */
+#game-container {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto; /* Header, Options, Main Content, Footer */
+    height: 100%;
+    max-height: 100vh;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+    gap: 0.5rem;
+}
+
 #game-header {
     position: relative;
-    padding: 0 0 0.5rem 0;
-    /* UPDATED: Removed margin-bottom to reduce space */
+    padding: 0 0.5rem;
+    grid-row: 1;
 }
-#title-bar { display: flex; justify-content: center; align-items: baseline; gap: 0.5rem; margin-bottom: 0.5rem; }
+#options-drawer {
+    grid-row: 2;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: all 0.3s ease-in-out;
+    opacity: 0;
+}
+#options-drawer.expanded { grid-template-rows: 1fr; opacity: 1; }
+#options-drawer > div { overflow: hidden; }
+
+#main-content {
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    min-height: 0; /* Flexbox shrink fix */
+}
+#game-footer {
+    grid-row: 4;
+    flex-shrink: 0;
+}
+
+/* --- 3. HEADER & CONTROLS --- */
+#title-bar { display: flex; justify-content: center; align-items: baseline; gap: 0.5rem; }
 h1 { font-size: 1.5rem; margin: 0; }
 #version-info { font-size: 0.8rem; color: #888; }
 #options-toggle {
     position: absolute; top: 0; left: 0;
     display: flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px;
-    background-color: transparent; border: 2px solid var(--border-color); border-radius: 50%;
+    width: 34px; height: 34px; background-color: transparent;
+    border: 2px solid var(--border-color); border-radius: 50%;
     cursor: pointer; transition: all 0.3s ease;
 }
 #options-toggle:hover { background-color: #eaf5ff; }
 #options-arrow { transition: transform 0.3s ease-in-out; }
 #options-drawer.expanded #options-arrow { transform: rotate(180deg); }
-#options-drawer { display: grid; grid-template-rows: 0fr; transition: all 0.3s ease-in-out; opacity: 0; }
-#options-drawer.expanded { grid-template-rows: 1fr; opacity: 1; padding-top: 0.5rem; }
-#options-drawer > div { overflow: hidden; }
 
 #controls {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -46,7 +77,7 @@ h1 { font-size: 1.5rem; margin: 0; }
     padding: 1rem; gap: 1rem;
     background-color: #eaf5ff; border-radius: 10px;
 }
-#language-switcher, #game-mode-switcher { display: flex; align-items: center; gap: 0.5rem; }
+#language-switcher, #game-mode-switcher, #grid-size-control { display: flex; align-items: center; gap: 0.5rem; }
 #sound-btn, #history-btn, #new-game-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
 #sound-btn { background-color: transparent; border: 2px solid var(--border-color); }
 #sound-btn.muted { opacity: 0.5; }
@@ -55,38 +86,44 @@ h1 { font-size: 1.5rem; margin: 0; }
 #language-switcher button { padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary-color); background-color: #ecf0f1; color: var(--main-text-color); }
 #language-switcher button.active { background-color: var(--primary-color); color: white; }
 #game-mode-switcher label { font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-#grid-size-control { font-size: 0.9rem; font-weight: bold; }
 #grid-size-value { min-width: 55px; text-align: left; }
 
-/* --- 3. MAIN CONTENT (GRID & LIST) --- */
-#main-content { display: flex; flex-direction: column; gap: 1rem; align-items: center; margin: 0 auto; width: 100%; max-width: 500px; }
-#puzzle-grid { display: flex; justify-content: center; align-items: center; background-color: var(--bg-color); border: 2px solid var(--border-color); padding: 5px; border-radius: 10px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05); aspect-ratio: 1 / 1; width: 100%; box-sizing: border-box; --grid-size: 13; }
+/* --- 4. PUZZLE GRID & WORD LIST --- */
+#puzzle-grid {
+    display: flex; justify-content: center; align-items: center;
+    background-color: var(--bg-color); border: 2px solid var(--border-color);
+    padding: 5px; border-radius: 10px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+    aspect-ratio: 1 / 1; width: 100%; max-width: 500px;
+    box-sizing: border-box; --grid-size: 13;
+}
 #puzzle-grid.loaded { display: grid; }
 #loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
 .grid-cell { aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center; background-color: var(--grid-bg-color); border-radius: 5px; font-family: var(--font-monospace); font-size: clamp(0.5rem, calc(80vw / var(--grid-size, 13) / 2.5), 1.8rem); font-weight: bold; text-transform: uppercase; user-select: none; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s; }
 .grid-cell.selected { background-color: var(--accent-color); transform: scale(1.05); }
 .grid-cell.found { border-color: transparent; }
-#word-list-container { padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box; }
+
+#word-list-container { padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color); width: 100%; max-width: 500px; box-sizing: border-box; }
 #words-to-find { list-style-type: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.25rem 0.75rem; }
 #words-to-find li { font-size: clamp(0.7rem, calc(70vw / var(--grid-size, 13) / 2.5), 1.2rem); padding: 0.4rem 0.8rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease; }
 #words-to-find li.found { text-decoration: line-through; color: var(--main-text-color); opacity: 0.9; }
+
 .grid-cell.hint { animation: pulse-hint 1.5s ease-out; }
 @keyframes pulse-hint { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); } 50% { transform: scale(1.2); box-shadow: 0 0 0 15px rgba(243, 156, 18, 0); background-color: var(--warning-color); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); } }
 
-/* --- 4. FOOTER & OTHER DISPLAYS --- */
-#game-footer { width: 100%; max-width: 500px; margin: 0 auto; }
-#verse-display, #definition-display { margin-top: 1rem; padding: 0.75rem 1rem; background-color: var(--grid-bg-color); border: 1px dashed var(--primary-color); border-radius: 10px; transition: all 0.3s ease-in-out; color: #34495e; text-align: left; }
+/* --- 5. FOOTER & OTHER DISPLAYS --- */
+#info-box { overflow-y: auto; } /* Allow this area to scroll if definitions are huge */
+#verse-display, #definition-display { margin-top: 0.5rem; padding: 0.75rem 1rem; background-color: var(--grid-bg-color); border: 1px dashed var(--primary-color); border-radius: 10px; color: #34495e; text-align: left; }
 #verse-display.hidden, #definition-display.hidden { display: none; }
-#stats { padding-top: 1rem; font-size: 1rem; font-weight: bold; display: flex; justify-content: space-around; flex-wrap: wrap; }
-#completion-message { margin-top: 1rem; padding: 1rem; background-color: var(--success-color); color: white; border-radius: 10px; transition: all 0.5s ease-in-out; opacity: 1; transform: scale(1); }
+#stats { padding-top: 0.5rem; font-size: 1rem; font-weight: bold; display: flex; justify-content: space-around; flex-wrap: wrap; }
+#completion-message { margin-top: 0.5rem; padding: 1rem; background-color: var(--success-color); color: white; border-radius: 10px; }
 #completion-message.hidden { display: none; }
+
+/* --- Sound Unlock Overlay & History Modal --- */
 #sound-unlock-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 200; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.5rem; font-weight: bold; cursor: pointer; text-align: center; }
 #sound-unlock-content span { display: block; font-size: 4rem; margin-top: 1rem; animation: pulse-icon 2s infinite ease-in-out; }
 @keyframes pulse-icon { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-#history-modal { position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; }
+#history-modal { position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; }
 #history-modal.hidden { display: none; }
-.modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
-.close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
-.history-entry { border-bottom: 1px solid var(--border-color); padding: 10px 5px; }
-.entry-skipped { font-weight: bold; color: var(--warning-color); }
+.modal-content { background-color: #fefefe; margin: auto; padding: 20px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }

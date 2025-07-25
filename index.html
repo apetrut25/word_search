@@ -16,74 +16,50 @@
         </div>
     </div>
 
-    <div id="game-wrapper" style="display: none;">
-        <div id="game-container">
-            <header id="game-header">
-                <div id="title-bar">
-                    <h1 id="game-title">Bible Word Search</h1>
-                    <div id="version-info"></div>
-                </div>
-                
-                <button id="options-toggle" title="Toggle Options">
-                    <svg id="options-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-                </button>
+    <!-- REBUILT: This is now the main layout container -->
+    <div id="game-container" style="display: none;">
+        <header id="game-header">
+            <button id="options-toggle" title="Toggle Options">
+                <svg id="options-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+            </button>
+            <div id="title-bar">
+                <h1 id="game-title">Bible Word Search</h1>
+                <div id="version-info"></div>
+            </div>
+        </header>
 
-                <div id="options-drawer" class="collapsed">
-                    <div id="controls">
-                        <div id="language-switcher">
-                            <button id="lang-en">English</button>
-                            <button id="lang-ro">Română</button>
-                        </div>
-                        <div id="game-mode-switcher">
-                            <input type="checkbox" id="bible-mode-checkbox">
-                            <label for="bible-mode-checkbox">Bible Mode</label>
-                        </div>
-                        <div id="grid-size-control">
-                            <label for="grid-size-slider">Grid Size:</label>
-                            <input type="range" id="grid-size-slider" min="10" max="16" value="13">
-                            <span id="grid-size-value">13 x 13</span>
-                        </div>
-                        <button id="sound-btn"><img id="sound-icon" src="volume.png" alt="Sound On"></button>
-                        <button id="history-btn">History</button>
-                        <!-- "Skip Puzzle" is now integrated into the "New Puzzle" button -->
-                        <button id="new-game-btn"><span id="new-game-btn-text">New Puzzle</span></button>
-                    </div>
-                </div>
-            </header>
-
-            <main id="main-content">
-                <div id="puzzle-grid">
-                    <div id="loader"></div>
-                </div>
-                <div id="word-list-container">
-                    <ul id="words-to-find"></ul>
-                </div>
-            </main>
-            
-            <footer id="game-footer">
-                <div id="verse-display" class="hidden"></div>
-                <div id="definition-display" class="hidden">
-                    <p><strong id="definition-word"></strong>: <span id="definition-text"></span></p>
-                </div>
-                <div id="stats">
-                    <p>Score: <span id="score">0</span></p>
-                    <p>Level: <span id="level">1</span></p>
-                    <p>Time: <span id="timer">0s</span></p>
-                </div>
-                <div id="completion-message" class="hidden">
-                    <p>Level Complete!</p>
-                    <span id="completion-details"></span>
-                </div>
-            </footer>
+        <div id="options-drawer" class="collapsed">
+            <div id="controls">
+                <div id="language-switcher"><button id="lang-en">English</button><button id="lang-ro">Română</button></div>
+                <div id="game-mode-switcher"><input type="checkbox" id="bible-mode-checkbox"><label for="bible-mode-checkbox">Bible Mode</label></div>
+                <div id="grid-size-control"><label for="grid-size-slider">Grid Size:</label><input type="range" id="grid-size-slider" min="10" max="16" value="13"><span id="grid-size-value">13 x 13</span></div>
+                <button id="sound-btn"><img id="sound-icon" src="volume.png" alt="Sound On"></button>
+                <button id="history-btn">History</button>
+                <button id="new-game-btn"><span id="new-game-btn-text">New Puzzle / Skip</span></button>
+            </div>
         </div>
+
+        <main id="main-content">
+            <div id="puzzle-grid"><div id="loader"></div></div>
+            <div id="word-list-container"><ul id="words-to-find"></ul></div>
+        </main>
+        
+        <footer id="game-footer">
+            <div id="info-box"> <!-- New wrapper for verse/definition -->
+                <div id="verse-display" class="hidden"></div>
+                <div id="definition-display" class="hidden"><p><strong id="definition-word"></strong>: <span id="definition-text"></span></p></div>
+            </div>
+            <div id="stats">
+                <p>Score: <span id="score">0</span></p>
+                <p>Level: <span id="level">1</span></p>
+                <p>Time: <span id="timer">0s</span></p>
+            </div>
+            <div id="completion-message" class="hidden"><p>Level Complete!</p><span id="completion-details"></span></div>
+        </footer>
     </div>
 
     <div id="history-modal" class="hidden">
-        <div class="modal-content">
-            <span id="close-history-btn" class="close-btn">×</span>
-            <h2>Game History</h2>
-            <div id="history-log"></div>
-        </div>
+        <div class="modal-content"><span id="close-history-btn" class="close-btn">×</span><h2>Game History</h2><div id="history-log"></div></div>
     </div>
     
     <script src="script.js"></script>
