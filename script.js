@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.6.5"; // Final Bible Word & Color Highlight Fix
+    const GAME_VERSION = "1.6.6"; // Final Color & Word Length Fix
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
     // --- SOUND ENGINE (Unchanged) ---
-    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'block'; } catch (e) { console.error("Web Audio API not supported.", e); gameWrapper.style.display = 'block'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
+    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'block'; } catch (e) { console.error("Web Audio API is not supported.", e); gameWrapper.style.display = 'block'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
 
     // --- 3. CORE INITIALIZATION (Unchanged) ---
     async function initializeGame() { versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`; sound.init(); const unlockOverlay = document.getElementById('sound-unlock-overlay'); unlockOverlay.addEventListener('click', () => { sound.unlock(); initializeData(); }, { once: true }); }
@@ -72,8 +72,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function getWordsForPuzzle(count) { const dictionary = standardDictionaries[gameState.currentLanguage]; if (!dictionary) return []; const allWords = Object.keys(dictionary); const validWords = allWords.filter(word => word.length <= gameState.gridSize); let shuffled = validWords.sort(() => 0.5 - Math.random()); return shuffled.slice(0, count); }
     
     // --- 6. RENDERING (UPDATED) ---
-    function renderGame() { renderWordList(); renderGrid(); updateStats(); langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english'); langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian'); }
-    function renderGrid() { gridContainer.style.setProperty('--grid-size', gameState.gridSize); gridContainer.innerHTML = ''; gridContainer.classList.add('loaded'); gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } } addSelectionListeners(); reapplyFoundStyles(); }
+    function renderGame() {
+        renderWordList();
+        renderGrid();
+        updateStats();
+        langEnBtn.classList.toggle('active', gameState.currentLanguage === 'english');
+        langRoBtn.classList.toggle('active', gameState.currentLanguage === 'romanian');
+    }
+    function renderGrid() {
+        gridContainer.style.setProperty('--grid-size', gameState.gridSize);
+        gridContainer.innerHTML = '';
+        gridContainer.classList.add('loaded');
+        gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`;
+        for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } }
+        addSelectionListeners();
+        reapplyFoundStyles();
+    }
     function renderWordList() { wordListUl.innerHTML = ''; const sortedWords = [...gameState.words].sort(); wordColorMap = {}; let shuffledPalette = [...colorPalette].sort(() => 0.5 - Math.random()); sortedWords.forEach((word, index) => { wordColorMap[word] = shuffledPalette[index % shuffledPalette.length]; }); sortedWords.forEach(word => { const li = document.createElement('li'); li.textContent = word; li.id = `word-${word}`; if (gameState.foundWords.includes(word)) { li.classList.add('found'); li.style.backgroundColor = `var(${wordColorMap[word]})`; } li.addEventListener('click', handleHintRequest); wordListUl.appendChild(li); }); }
     function updateStats() { scoreEl.textContent = gameState.score; levelEl.textContent = gameState.level; }
     
@@ -138,12 +152,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const chapterData = langBibleData[book][chapterNum];
             
             // FIXED: More robust regex and word filtering
-            const wordRegex = new RegExp(`\\b[A-ZĂÂÎȘȚ]{4,${Math.min(10, gameState.gridSize)}}\\b`, 'g');
+            const wordRegex = new RegExp(`\\b[A-ZĂÂÎȘȚ]{4,9}\\b`, 'g');
             for (const verseNum in chapterData) {
                 const verseText = chapterData[verseNum];
                 const wordsInVerse = verseText.toUpperCase().match(wordRegex) || [];
                 wordsInVerse.forEach(word => {
-                    wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum });
+                    if (word.length <= gameState.gridSize) {
+                        wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum });
+                    }
                 });
             }
             const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
@@ -164,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchLanguage(lang) { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } if (gameState.foundWords && gameState.foundWords.length === gameState.words.length) { gameState.level++; } const currentScore = gameState.score || 0; const isBible = bibleModeCheckbox.checked; createNewGame(lang, isBible, currentScore); }
     function switchMode() { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } const currentScore = gameState.score || 0; const currentLang = gameState.currentLanguage; const isBible = bibleModeCheckbox.checked; createNewGame(currentLang, isBible, currentScore); }
     
-    // --- EVENT LISTENERS ---
+    // --- EVENT LISTENERS (Unchanged) ---
     soundBtn.addEventListener('click', () => sound.toggleMute());
     historyBtn.addEventListener('click', displayHistory);
     closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
