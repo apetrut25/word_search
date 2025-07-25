@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.7.0"; // recolor grid cells for found words
+    const GAME_VERSION = "1.7.1"; // fix sound ipad
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
@@ -41,10 +41,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
     // --- SOUND ENGINE (Unchanged) ---
-    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'block'; } catch (e) { console.error("Web Audio API is not supported.", e); gameWrapper.style.display = 'block'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
+// --- SOUND ENGINE (UPDATED) ---
+    const sound = {
+        isMuted: true,
+        audioContext: null,
+        buffers: {},
+        isUnlocked: false,
 
-    // --- 3. CORE INITIALIZATION (Unchanged) ---
-    async function initializeGame() { versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`; sound.init(); const unlockOverlay = document.getElementById('sound-unlock-overlay'); unlockOverlay.addEventListener('click', () => { sound.unlock(); initializeData(); }, { once: true }); }
+        // ADDED: Method to safely resume a suspended audio context on iOS/iPadOS
+        resume: function() {
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().then(() => {
+                    console.log("AudioContext resumed successfully after being suspended.");
+                }).catch(e => console.error("Failed to resume AudioContext:", e));
+            }
+        },
+
+        init: function() {
+            this.isMuted = localStorage.getItem('soundMuted') === 'true';
+            soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png';
+            soundBtn.classList.toggle('muted', this.isMuted);
+        },
+        unlock: function() {
+            if (this.isUnlocked) return;
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this._loadSounds();
+                this.isUnlocked = true;
+                console.log("Audio Context unlocked.");
+                const unlockOverlay = document.getElementById('sound-unlock-overlay');
+                if (unlockOverlay) unlockOverlay.style.display = 'none';
+                gameWrapper.style.display = 'block';
+            } catch (e) {
+                console.error("Web Audio API is not supported.", e);
+                gameWrapper.style.display = 'block';
+            }
+        },
+        _loadSound: async function(name, url) {
+            if (!this.audioContext) return;
+            try {
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer);
+            } catch (error) {
+                console.error(`Failed to load sound: ${name}`, error);
+            }
+        },
+        _loadSounds: function() {
+            this._loadSound('correct', 'correct.mp3');
+            this._loadSound('error', 'error.mp3');
+            this._loadSound('complete', 'complete.mp3');
+            this._loadSound('hint', 'hint.mp3');
+        },
+        play: function(name) {
+            if (this.isMuted || !this.buffers[name] || !this.audioContext) return;
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            const source = this.audioContext.createBufferSource();
+            source.buffer = this.buffers[name];
+            source.connect(this.audioContext.destination);
+            source.start(0);
+        },
+        toggleMute: function() {
+            if (!this.isUnlocked) {
+                this.unlock();
+            }
+            this.isMuted = !this.isMuted;
+            localStorage.setItem('soundMuted', this.isMuted);
+            soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png';
+            soundBtn.classList.toggle('muted', this.isMuted);
+        }
+    };
+    
+    // --- 3. CORE INITIALIZATION (UPDATED) ---
+    async function initializeGame() {
+        versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`;
+        sound.init();
+
+        // ADDED: Event listener to resume audio when the tab becomes visible again on mobile.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                sound.resume();
+            }
+        });
+
+        const unlockOverlay = document.getElementById('sound-unlock-overlay');
+        unlockOverlay.addEventListener('click', () => {
+            sound.unlock();
+            initializeData();
+        }, { once: true });
+    }
     async function initializeData() {
         try {
             const [bibleRes, dictEngRes, dictRomRes] = await Promise.all([ fetch('bible_data.json'), fetch('english_dictionary.json'), fetch('romanian_dictionary.json'), ]);
