@@ -48,7 +48,14 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 #grid-size-value { min-width: 55px; text-align: left; }
 
 /* --- 3. MAIN CONTENT (GRID & LIST) --- */
-#main-content { display: flex; flex-direction: column; gap: 1rem; flex-grow: 1; min-height: 0; align-items: center; }
+#main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-grow: 1;
+    min-height: 0; /* Critical flexbox fix for allowing children to shrink */
+    align-items: center;
+}
 #puzzle-grid {
     display: flex;
     justify-content: center;
@@ -59,12 +66,14 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
     border-radius: 10px;
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
     aspect-ratio: 1 / 1;
-    width: 100%;
-    max-width: 65vh; /* Limit size based on screen height for portrait */
-    max-height: 65vw; /* Limit size based on screen width for landscape */
+    /* UPDATED: Let flexbox determine the size, up to a max */
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
     box-sizing: border-box;
-    /* NEW: CSS Variable for grid size */
     --grid-size: 13;
+    flex-shrink: 0; /* The grid should not be squashed */
 }
 #puzzle-grid.loaded { display: grid; }
 #loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
@@ -78,7 +87,7 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
     background-color: var(--grid-bg-color);
     border-radius: 5px;
     font-family: var(--font-monospace);
-    /* UPDATED: Dynamic font size calculation */
+    /* DYNAMIC FONT: The font size will adjust based on the CSS variable */
     font-size: calc(40vw / var(--grid-size, 13));
     font-weight: bold;
     text-transform: uppercase;
@@ -88,9 +97,19 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
     transition: all 0.2s;
 }
 
-.grid-cell.selected { background-color: var(--accent-color); transform: scale(1.05); }
-.grid-cell.found { border-color: transparent; }
-#word-list-container { padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color); overflow-y: auto; width: 100%; max-width: 65vh; box-sizing: border-box; flex-shrink: 0; }
+#word-list-container {
+    padding: 0.75rem;
+    background-color: var(--grid-bg-color);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    overflow-y: auto;
+    width: 100%;
+    max-width: 600px; /* Give it a max-width for sanity on large screens */
+    box-sizing: border-box;
+    /* UPDATED: Allow this container to grow and shrink */
+    flex-grow: 1;
+    min-height: 0; /* Allows it to shrink */
+}
 #words-to-find { list-style-type: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 0.75rem; }
 #words-to-find li { font-size: 1rem; padding: 0.4rem 0.8rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease; }
 #words-to-find li:not(.found) { cursor: pointer; }
@@ -126,6 +145,6 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 /* Media query for very small screens to adjust font size */
 @media (max-width: 380px) {
     .grid-cell {
-        font-size: calc(50vw / var(--grid-size, 13));
+        font-size: calc(60vw / var(--grid-size, 13));
     }
 }
