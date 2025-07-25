@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
     const GAME_VERSION = "1.1.3"; // Final bug fix for removed element
-    const BUILD_DATE = "2025-07-18";
+    const BUILD_DATE = "2025-07-25";
     // FIXED: Removed the non-existent wordListTitleEl from this list
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
