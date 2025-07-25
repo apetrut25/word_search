@@ -13,7 +13,7 @@ body { padding: 0.5rem; box-sizing: border-box; }
 /* --- 2. HEADER & OPTIONS (REBUILT) --- */
 #game-header {
     display: grid;
-    grid-template-columns: 50px 1fr 50px; /* Left Button | Center Title | Right Spacer */
+    grid-template-columns: 50px 1fr 100px; /* Left Toggle | Center Title | Right Next Button */
     align-items: center;
     padding-bottom: 0.5rem;
 }
@@ -22,8 +22,7 @@ body { padding: 0.5rem; box-sizing: border-box; }
     display: flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; background-color: transparent;
     border: 2px solid var(--border-color); border-radius: 50%;
-    cursor: pointer; transition: all 0.3s ease;
-    margin: 0 auto; /* Center within its grid column */
+    cursor: pointer; transition: all 0.3s ease; margin: 0 auto;
 }
 #options-toggle:hover { background-color: #eaf5ff; }
 #options-arrow { transition: transform 0.3s ease-in-out; }
@@ -31,17 +30,30 @@ body { padding: 0.5rem; box-sizing: border-box; }
 
 #title-bar {
     grid-column: 2 / 3;
-    display: flex;
-    flex-direction: column; /* Stack title and version vertically */
-    justify-content: center;
-    align-items: center;
-    gap: 0.1rem;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.1rem;
 }
 h1 { font-size: 1.5rem; margin: 0; line-height: 1; }
-#version-info { font-size: 0.8rem; color: #888; white-space: nowrap; /* Prevent wrapping */ }
+#version-info { font-size: 0.8rem; color: #888; white-space: nowrap; }
+
+#new-game-btn {
+    grid-column: 3 / 4;
+    justify-self: end; /* Align to the right of its column */
+    margin-right: 10px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+#new-game-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
 
 #options-drawer {
-    grid-column: 1 / -1; /* Span all columns when open */
+    grid-column: 1 / -1;
     display: grid;
     grid-template-rows: 0fr;
     transition: all 0.3s ease-in-out;
@@ -57,16 +69,21 @@ h1 { font-size: 1.5rem; margin: 0; line-height: 1; }
     background-color: #eaf5ff; border-radius: 10px;
 }
 #language-switcher, #game-mode-switcher, #grid-size-control { display: flex; align-items: center; gap: 0.5rem; }
-#sound-btn, #history-btn, #new-game-btn, #clear-cache-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+#sound-btn, #history-btn { padding: 0.5rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
 #sound-btn { background-color: transparent; border: 2px solid var(--border-color); }
 #sound-btn.muted { opacity: 0.5; }
 #sound-icon { width: 20px; height: 20px; display: block; }
-#history-btn, #new-game-btn { background-color: var(--primary-color); color: white; padding: 0.6rem 1rem; }
-#clear-cache-btn { background-color: var(--warning-color); color: white; padding: 0.6rem 1rem; }
+#history-btn { background-color: #7f8c8d; color: white; padding: 0.6rem 1rem; } /* Neutral color */
 #language-switcher button { padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary-color); background-color: #ecf0f1; color: var(--main-text-color); }
 #language-switcher button.active { background-color: var(--primary-color); color: white; }
-#game-mode-switcher label { font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-#grid-size-value { min-width: 55px; text-align: left; }
+
+/* UPDATED: Font styles for uniformity */
+#game-mode-switcher label, #grid-size-control label {
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+#grid-size-value { min-width: 55px; text-align: left; font-size: 0.9rem; font-weight: bold; }
 
 /* --- 3. MAIN CONTENT (GRID & LIST) --- */
 #main-content { display: flex; flex-direction: column; gap: 1rem; align-items: center; margin: 0 auto; width: 100%; max-width: 500px; }

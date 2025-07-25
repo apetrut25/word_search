@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.6.0"; // Final Polished Version
+    const GAME_VERSION = "1.6.0"; // Final UI Streamlining & Polish
     const BUILD_DATE = "2025-07-25";
-    // UPDATED: Removed deleted button references
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
         gameTitleEl = document.getElementById('game-title'),
@@ -23,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bibleModeCheckbox = document.getElementById('bible-mode-checkbox'),
         gridSizeSlider = document.getElementById('grid-size-slider'),
         gridSizeValue = document.getElementById('grid-size-value'),
+        clearCacheBtn = document.getElementById('clear-cache-btn'),
         completionMessageEl = document.getElementById('completion-message'),
         completionDetailsEl = document.getElementById('completion-details'),
         verseDisplayEl = document.getElementById('verse-display'),
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
 
     // --- SOUND ENGINE (Unchanged) ---
-    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'block'; } catch (e) { console.error("Web Audio API not supported.", e); gameWrapper.style.display = 'block'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
+    const sound = { isMuted: true, audioContext: null, buffers: {}, isUnlocked: false, init: function() { this.isMuted = localStorage.getItem('soundMuted') === 'true'; soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); }, unlock: function() { if (this.isUnlocked) return; try { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this._loadSounds(); this.isUnlocked = true; console.log("Audio Context unlocked."); const unlockOverlay = document.getElementById('sound-unlock-overlay'); if (unlockOverlay) unlockOverlay.style.display = 'none'; gameWrapper.style.display = 'block'; } catch (e) { console.error("Web Audio API is not supported.", e); gameWrapper.style.display = 'block'; } }, _loadSound: async function(name, url) { if (!this.audioContext) return; try { const response = await fetch(url); const arrayBuffer = await response.arrayBuffer(); this.buffers[name] = await this.audioContext.decodeAudioData(arrayBuffer); } catch (error) { console.error(`Failed to load sound: ${name}`, error); } }, _loadSounds: function() { this._loadSound('correct', 'correct.mp3'); this._loadSound('error', 'error.mp3'); this._loadSound('complete', 'complete.mp3'); this._loadSound('hint', 'hint.mp3'); }, play: function(name) { if (this.isMuted || !this.buffers[name] || !this.audioContext) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const source = this.audioContext.createBufferSource(); source.buffer = this.buffers[name]; source.connect(this.audioContext.destination); source.start(0); }, toggleMute: function() { if (!this.isUnlocked) { this.unlock(); } this.isMuted = !this.isMuted; localStorage.setItem('soundMuted', this.isMuted); soundIconEl.src = this.isMuted ? 'mute.png' : 'volume.png'; soundBtn.classList.toggle('muted', this.isMuted); } };
 
     // --- 3. CORE INITIALIZATION (Unchanged) ---
     async function initializeGame() { versionInfoEl.textContent = `v${GAME_VERSION} (${BUILD_DATE})`; sound.init(); const unlockOverlay = document.getElementById('sound-unlock-overlay'); unlockOverlay.addEventListener('click', () => { sound.unlock(); initializeData(); }, { once: true }); }
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gridContainer.classList.remove('loaded');
         gridContainer.innerHTML = '<div id="loader"></div>';
         completionMessageEl.classList.add('hidden'); verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden');
-        newGameBtnText.textContent = "New Puzzle / Skip";
+        newGameBtnText.textContent = "Next";
         gameState.gridSize = parseInt(gridSizeSlider.value);
         gridContainer.style.setProperty('--grid-size', gameState.gridSize);
         hasGridSizeChanged = false;
@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
     bibleModeCheckbox.addEventListener('change', switchMode);
     
+    // UPDATED: Combined New/Skip/Regenerate logic for "Next" button
     newGameBtn.addEventListener('click', () => {
         const isComplete = gameState.foundWords.length === gameState.words.length;
         if (isComplete) {
@@ -157,14 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.foundWords = [];
             startLevel();
         } else if (hasGridSizeChanged) {
-            if (confirm("Change grid size and start a new puzzle for this level? (Your progress on this level will be lost)")) {
+            if (confirm("Start a new puzzle with the new grid size? (Progress on this level will be lost)")) {
                 saveHistory(gameState.currentLevelData);
                 gameState.foundWords = [];
                 startLevel();
             }
         } else {
             const skipCost = 100;
-            if (gameState.score < skipCost) { alert(`You need at least ${skipCost} points to skip a puzzle!`); return; }
+            if (gameState.score < skipCost) { alert(`You need at least ${skipCost} points to skip this puzzle!`); return; }
             if (confirm(`Are you sure you want to skip this puzzle? It will cost ${skipCost} points.`)) {
                 saveHistory(gameState.currentLevelData);
                 gameState.score -= skipCost;
@@ -174,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
+
     langEnBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'english') switchLanguage('english'); });
     langRoBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'romanian') switchLanguage('romanian'); });
     
