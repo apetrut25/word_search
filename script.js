@@ -1,13 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.3.0"; // Final UI: Collapsible Options
+    const GAME_VERSION = "1.4.0"; // Final UI: Collapsible Options & UX Polish
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
-        gameContainer = document.getElementById('game-container'),
         gameTitleEl = document.getElementById('game-title'),
-        optionsToggle = document.getElementById('options-toggle'), // NEW
-        optionsDrawer = document.getElementById('options-drawer'), // NEW
+        optionsToggle = document.getElementById('options-toggle'),
+        optionsDrawer = document.getElementById('options-drawer'),
         gridContainer = document.getElementById('puzzle-grid'),
         wordListUl = document.getElementById('words-to-find'),
         scoreEl = document.getElementById('score'),
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         timerEl = document.getElementById('timer'),
         newGameBtn = document.getElementById('new-game-btn'),
         newGameBtnText = document.getElementById('new-game-btn-text'),
-        skipBtn = document.getElementById('skip-btn'),
         soundBtn = document.getElementById('sound-btn'),
         soundIconEl = document.getElementById('sound-icon'),
         langEnBtn = document.getElementById('lang-en'),
@@ -23,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bibleModeCheckbox = document.getElementById('bible-mode-checkbox'),
         gridSizeSlider = document.getElementById('grid-size-slider'),
         gridSizeValue = document.getElementById('grid-size-value'),
+        clearCacheBtn = document.getElementById('clear-cache-btn'),
         completionMessageEl = document.getElementById('completion-message'),
         completionDetailsEl = document.getElementById('completion-details'),
         verseDisplayEl = document.getElementById('verse-display'),
@@ -36,7 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
         versionInfoEl = document.getElementById('version-info');
 
     // --- 2. GAME STATE & OTHER VARIABLES ---
-    let gameState = {}, puzzleTimer, bibleData = {}, standardDictionaries = {};
+    let gameState = {};
+    let puzzleTimer;
+    let bibleData = {}, standardDictionaries = {};
+    let hasGridSizeChanged = false; // NEW: Flag to track if the user changed the grid size
     const colorPalette = ['--found-color-1', '--found-color-2', '--found-color-3', '--found-color-4', '--found-color-5', '--found-color-6', '--found-color-7', '--found-color-8', '--found-color-9', '--found-color-10'];
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
@@ -53,11 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bibleData = await bibleRes.json(); standardDictionaries.english = await dictEngRes.json(); standardDictionaries.romanian = await dictRomRes.json();
             console.log("All 3 required game data files successfully loaded.");
             initGameSession();
-        } catch (error) {
-            console.error("CRITICAL ERROR: Could not load game data files.", error);
-            const unlockOverlay = document.getElementById('sound-unlock-overlay');
-            unlockOverlay.innerHTML = `<div id="sound-unlock-content"><h1>Error</h1><p>Could not load game data. Please ensure JSON files are correct and refresh the page.</p></div>`;
-        }
+        } catch (error) { console.error("CRITICAL ERROR: Could not load game data files.", error); const unlockOverlay = document.getElementById('sound-unlock-overlay'); unlockOverlay.innerHTML = `<div id="sound-unlock-content"><h1>Error</h1><p>Could not load game data. Please ensure JSON files are correct and refresh the page.</p></div>`; }
     }
 
     // --- 4. GAME SESSION & STATE LOGIC (Unchanged) ---
@@ -95,25 +93,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 8. HINT SYSTEM (Unchanged) ---
     function handleHintRequest(e) { const word = e.target.textContent; const hintCost = 75; if (gameState.foundWords.includes(word)) return; if (gameState.score < hintCost) { alert(`Not enough points! A hint costs ${hintCost} points.`); return; } sound.play('hint'); gameState.score -= hintCost; gameState.currentLevelData.pointsEarned -= hintCost; if (gameState.currentLevelData) gameState.currentLevelData.hintsUsed++; updateStats(); saveState(); const location = gameState.wordLocations[word]; if (location) { const hintCell = document.querySelector(`[data-row='${location.r}'][data-col='${location.c}']`); if (hintCell) { hintCell.classList.add('hint'); setTimeout(() => { hintCell.classList.remove('hint'); }, 1500); } } }
 
-    // --- 9. GAME INITIALIZATION & CONTROLS (Unchanged) ---
-    function createNewGame(language, isBibleMode, score = 0) { langEnBtn.classList.toggle('active', language === 'english'); langRoBtn.classList.toggle('active', language === 'romanian'); bibleModeCheckbox.checked = isBibleMode; gameState = { level: 1, score: score, currentLanguage: language, bibleMode: isBibleMode, words: [], wordLocations: {}, grid: [], foundWords: [], currentLevelData: null, bibleChapterPlaylist: [] }; startLevel(); }
+    // --- 9. GAME INITIALIZATION & CONTROLS (UPDATED) ---
+    function createNewGame(language, isBibleMode, score = 0) {
+        langEnBtn.classList.toggle('active', language === 'english');
+        langRoBtn.classList.toggle('active', language === 'romanian');
+        bibleModeCheckbox.checked = isBibleMode;
+        gameState = { level: 1, score: score, currentLanguage: language, bibleMode: isBibleMode, words: [], wordLocations: {}, grid: [], foundWords: [], currentLevelData: null, bibleChapterPlaylist: [] };
+        startLevel();
+    }
+    
     function startLevel() {
         gridContainer.classList.remove('loaded');
         gridContainer.innerHTML = '<div id="loader"></div>';
-        completionMessageEl.classList.add('hidden'); verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden'); newGameBtnText.textContent = "New Puzzle";
+        completionMessageEl.classList.add('hidden'); verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden');
+        newGameBtnText.textContent = "New Puzzle / Skip"; // Updated default text
+        
         gameState.gridSize = parseInt(gridSizeSlider.value);
+        gridContainer.style.setProperty('--grid-size', gameState.gridSize);
+        hasGridSizeChanged = false; // Reset the flag for the new level
+
         gameState.currentLevelData = { level: gameState.level, mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`, time: 0, hintsUsed: 0, pointsEarned: 0, wordsFound: 0, totalWords: 10, completed: false, verseMap: {}, timestamp: new Date().toISOString() };
         
+        // UPDATED: Set title based on mode
+        gameTitleEl.textContent = "Bible Word Search";
+        
         if (gameState.bibleMode) {
-            gameTitleEl.textContent = "Bible Word Search";
             const langBibleData = bibleData[gameState.currentLanguage];
             if (!langBibleData || Object.keys(langBibleData).length === 0) { alert(`Bible data not available for '${gameState.currentLanguage}'. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
             if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) { const allChapters = []; for (const book in langBibleData) { for (const chapterNum in langBibleData[book]) { allChapters.push({ book, chapterNum }); } } gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random()); }
             if (gameState.bibleChapterPlaylist.length === 0) { alert(`No chapters found. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
             const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
             const { book, chapterNum } = chapterInfo;
-            const chapterData = langBibleData[book][chapterNum];
             let wordsWithVerses = [];
+            const chapterData = langBibleData[book][chapterNum];
             for (const verseNum in chapterData) { const verseText = chapterData[verseNum]; const wordsInVerse = verseText.toUpperCase().match(/[A-ZĂÂÎȘȚ]+/g) || []; wordsInVerse.forEach(word => { if (word.length > 3 && word.length <= gameState.gridSize) { wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum }); } }); }
             const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
             const shuffledWords = uniqueWords.sort(() => 0.5 - Math.random());
@@ -121,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.words = selectedWords.map(w => w.word);
             selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
         } else {
-            gameTitleEl.textContent = "Bible Word Search"; // UPDATED
             gameState.words = getWordsForPuzzle(10);
         }
         
@@ -141,13 +152,55 @@ document.addEventListener('DOMContentLoaded', () => {
     historyBtn.addEventListener('click', displayHistory);
     closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
     bibleModeCheckbox.addEventListener('change', switchMode);
-    newGameBtn.addEventListener('click', () => { if (gameState.foundWords.length === gameState.words.length) { gameState.level++; gameState.foundWords = []; startLevel(); } else { alert("Please complete the current puzzle first!"); } });
-    skipBtn.addEventListener('click', () => { const skipCost = 100; if (gameState.score < skipCost) { alert(`You need at least ${skipCost} points to skip a puzzle!`); return; } if (confirm(`Are you sure you want to skip this puzzle? It will cost ${skipCost} points.`)) { saveHistory(gameState.currentLevelData); gameState.score -= skipCost; gameState.level++; gameState.foundWords = []; startLevel(); } });
+    
+    // UPDATED: Combined New/Skip/Regenerate logic
+    newGameBtn.addEventListener('click', () => {
+        const isComplete = gameState.foundWords.length === gameState.words.length;
+        if (isComplete) {
+            // Behave as "Next Level"
+            gameState.level++;
+            gameState.foundWords = [];
+            startLevel();
+        } else if (hasGridSizeChanged) {
+            // Behave as a "free" regenerate
+            if (confirm("Change grid size and start a new puzzle for this level? (No cost)")) {
+                gameState.foundWords = []; // Reset progress
+                startLevel();
+            }
+        } else {
+            // Behave as "Skip"
+            const skipCost = 100;
+            if (gameState.score < skipCost) { alert(`You need at least ${skipCost} points to skip a puzzle!`); return; }
+            if (confirm(`Are you sure you want to skip this puzzle? It will cost ${skipCost} points.`)) {
+                saveHistory(gameState.currentLevelData);
+                gameState.score -= skipCost;
+                gameState.level++;
+                gameState.foundWords = [];
+                startLevel();
+            }
+        }
+    });
+    
+    // NEW: Clear Cache button
+    clearCacheBtn.addEventListener('click', () => {
+        if (confirm("This will clear your current game progress and preferences (like grid size), but not your history. Are you sure?")) {
+            localStorage.removeItem('wordSearchGameState');
+            localStorage.removeItem('wordSearchGridSize');
+            // We keep 'wordSearchHistory'
+            window.location.reload();
+        }
+    });
+
     langEnBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'english') switchLanguage('english'); });
     langRoBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'romanian') switchLanguage('romanian'); });
-    gridSizeSlider.addEventListener('input', (e) => { const size = e.target.value; gridSizeValue.textContent = `${size} x ${size}`; localStorage.setItem('wordSearchGridSize', size); });
+    
+    gridSizeSlider.addEventListener('input', (e) => {
+        const size = e.target.value;
+        gridSizeValue.textContent = `${size} x ${size}`;
+        localStorage.setItem('wordSearchGridSize', size);
+        hasGridSizeChanged = true; // Set the flag
+    });
 
-    // NEW: Add the options toggle listener
     optionsToggle.addEventListener('click', () => {
         optionsDrawer.classList.toggle('expanded');
     });
