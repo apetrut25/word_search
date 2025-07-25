@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.6.3"; // Final Color Restoration Fix
+    const GAME_VERSION = "1.6.4"; // Final Color & Bible Word Logic Fix
     const BUILD_DATE = "2025-07-25";
+    // (All DOM references are the same)
     const gameWrapper = document.getElementById('game-wrapper'), gameContainer = document.getElementById('game-container'), gameTitleEl = document.getElementById('game-title'), optionsToggle = document.getElementById('options-toggle'), optionsDrawer = document.getElementById('options-drawer'), gridContainer = document.getElementById('puzzle-grid'), wordListUl = document.getElementById('words-to-find'), scoreEl = document.getElementById('score'), levelEl = document.getElementById('level'), timerEl = document.getElementById('timer'), newGameBtn = document.getElementById('new-game-btn'), newGameBtnText = document.getElementById('new-game-btn-text'), soundBtn = document.getElementById('sound-btn'), soundIconEl = document.getElementById('sound-icon'), langEnBtn = document.getElementById('lang-en'), langRoBtn = document.getElementById('lang-ro'), bibleModeCheckbox = document.getElementById('bible-mode-checkbox'), gridSizeSlider = document.getElementById('grid-size-slider'), gridSizeValue = document.getElementById('grid-size-value'), completionMessageEl = document.getElementById('completion-message'), completionDetailsEl = document.getElementById('completion-details'), verseDisplayEl = document.getElementById('verse-display'), definitionDisplayEl = document.getElementById('definition-display'), definitionWordEl = document.getElementById('definition-word'), definitionTextEl = document.getElementById('definition-text'), historyBtn = document.getElementById('history-btn'), historyModal = document.getElementById('history-modal'), closeHistoryBtn = document.getElementById('close-history-btn'), historyLogEl = document.getElementById('history-log'), versionInfoEl = document.getElementById('version-info');
 
     // --- 2. GAME STATE & OTHER VARIABLES ---
     let gameState = {}, puzzleTimer, bibleData = {}, standardDictionaries = {};
+    let hasGridSizeChanged = false;
     const colorPalette = ['--found-color-1', '--found-color-2', '--found-color-3', '--found-color-4', '--found-color-5', '--found-color-6', '--found-color-7', '--found-color-8', '--found-color-9', '--found-color-10'];
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
@@ -33,11 +35,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveHistory(levelData) { if (!levelData) return; let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || []; history.push(levelData); localStorage.setItem('wordSearchHistory', JSON.stringify(history)); }
     function displayHistory() { let history = JSON.parse(localStorage.getItem('wordSearchHistory')) || []; historyLogEl.innerHTML = ''; if (history.length === 0) { historyLogEl.innerHTML = '<p>No games completed yet!</p>'; return; } history.slice().reverse().forEach(entry => { const entryDiv = document.createElement('div'); entryDiv.className = 'history-entry'; const date = new Date(entry.timestamp).toLocaleString(); const status = entry.completed ? '' : `<span class="entry-skipped">(Incomplete)</span>`; entryDiv.innerHTML = `<div class="entry-header"><strong>Level ${entry.level} ${status}</strong><span class="entry-date">${date}</span></div><p class="entry-details"><strong>Mode:</strong> ${entry.mode}</p><p class="entry-details"><strong>Time:</strong> ${entry.time}s | <strong>Hints Used:</strong> ${entry.hintsUsed} | <strong>Words Found:</strong> ${entry.wordsFound}/${entry.totalWords} | <strong>Points Earned:</strong> ${entry.pointsEarned}</p>`; historyLogEl.appendChild(entryDiv); }); historyModal.classList.remove('hidden'); }
 
-    // --- 5. PUZZLE GENERATION & TIMER (Unchanged) ---
+    // --- 5. PUZZLE GENERATION & TIMER ---
     function startTimer() { stopTimer(); let seconds = gameState.currentLevelData.time || 0; timerEl.textContent = `${seconds}s`; puzzleTimer = setInterval(() => { seconds++; timerEl.textContent = `${seconds}s`; if (gameState.currentLevelData) gameState.currentLevelData.time = seconds; }, 1000); }
     function stopTimer() { clearInterval(puzzleTimer); }
     function generatePuzzle() { const wordsToPlace = [...gameState.words].sort((a, b) => b.length - a.length); const directions = { horizontal: [{ x: 1, y: 0 }, { x: -1, y: 0 }], vertical: [{ x: 0, y: 1 }, { x: 0, y: -1 }], diagonal: [{ x: 1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }] }; const requiredPlacements = { horizontal: 2, vertical: 2, diagonal: 2 }; const remainingWords = 10 - Object.values(requiredPlacements).reduce((a, b) => a + b); for (let attempt = 0; attempt < 50; attempt++) { let grid = Array.from({ length: gameState.gridSize }, () => Array(gameState.gridSize).fill(null)); gameState.wordLocations = {}; let availableWords = [...wordsToPlace]; let success = true; for (const type in requiredPlacements) { for (let i = 0; i < requiredPlacements[type]; i++) { if (availableWords.length === 0) break; let word = availableWords.shift(); if (!placeWordInGrid(grid, word, directions[type])) { success = false; break; } } if (!success) break; } if (!success) continue; const allDirections = [...directions.horizontal, ...directions.vertical, ...directions.diagonal]; for (let i = 0; i < remainingWords; i++) { if (availableWords.length === 0) break; let word = availableWords.shift(); if (!placeWordInGrid(grid, word, allDirections)) { success = false; break; } } if (!success) continue; fillEmptyCells(grid); return grid; } console.error("Failed to generate puzzle after all attempts."); return null; }
-    function placeWordInGrid(grid, word, directionSet) { const shuffledDirections = directionSet.sort(() => 0.5 - Math.random()); for (let i = 0; i < 100; i++) { const dir = shuffledDirections[i % shuffledDirections.length]; const row = Math.floor(Math.random() * gameState.gridSize); const col = Math.floor(Math.random() * gameState.gridSize); if (canPlaceWord(grid, word, row, col, dir)) { for (let j = 0; j < word.length; j++) { grid[row + j * dir.y][col + j * dir.x] = word[j]; } gameState.wordLocations[word] = { r: row, c: col, dir: dir }; return true; } } return false; }
+    
+    // UPDATED: Now saves the direction of the placed word
+    function placeWordInGrid(grid, word, directionSet) {
+        const shuffledDirections = directionSet.sort(() => 0.5 - Math.random());
+        for (let i = 0; i < 100; i++) {
+            const dir = shuffledDirections[i % shuffledDirections.length];
+            const row = Math.floor(Math.random() * gameState.gridSize);
+            const col = Math.floor(Math.random() * gameState.gridSize);
+            if (canPlaceWord(grid, word, row, col, dir)) {
+                for (let j = 0; j < word.length; j++) {
+                    grid[row + j * dir.y][col + j * dir.x] = word[j];
+                }
+                gameState.wordLocations[word] = { r: row, c: col, dir: dir }; // Save direction
+                return true;
+            }
+        }
+        return false;
+    }
+
     function canPlaceWord(grid, word, row, col, dir) { for (let i = 0; i < word.length; i++) { let r = row + i * dir.y, c = col + i * dir.x; if (r < 0 || r >= gameState.gridSize || c < 0 || c >= gameState.gridSize) return false; if (grid[r][c] !== null && grid[r][c] !== word[i]) return false; } return true; }
     function fillEmptyCells(grid) { const letters = alphabet[gameState.currentLanguage]; for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { if (grid[r][c] === null) grid[r][c] = letters[Math.floor(Math.random() * letters.length)]; } } }
     function getWordsForPuzzle(count) { const dictionary = standardDictionaries[gameState.currentLanguage]; if (!dictionary) return []; const allWords = Object.keys(dictionary); const validWords = allWords.filter(word => word.length <= gameState.gridSize); let shuffled = validWords.sort(() => 0.5 - Math.random()); return shuffled.slice(0, count); }
@@ -67,43 +87,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // NEW & FIXED: Function to re-apply colors to the grid for saved games
     function reapplyFoundStyles() {
         if (!gameState.wordLocations || !gameState.foundWords) return;
-
+        
         for (const word of gameState.foundWords) {
             const location = gameState.wordLocations[word];
             const color = wordColorMap[word];
-            if (!location || !color) continue;
-
+            
+            // Only proceed if we have all the necessary data
+            if (!location || !color || !location.dir) continue;
+            
             let { r, c, dir } = location;
 
-            // This is the critical part: we must find the direction again, as it's not saved.
-            // A simple check of neighbors is the most reliable way.
-            if (!dir) {
-                const secondLetter = word[1];
-                for(let dx = -1; dx <= 1; dx++) {
-                    for (let dy = -1; dy <= 1; dy++) {
-                        if (dx === 0 && dy === 0) continue;
-                        const nextR = r + dy;
-                        const nextC = c + dx;
-                        if (nextR >= 0 && nextR < gameState.gridSize && nextC >= 0 && nextC < gameState.gridSize) {
-                            if (gameState.grid[nextR][nextC] === secondLetter) {
-                                dir = { x: dx, y: dy };
-                                break;
-                            }
-                        }
-                    }
-                    if(dir) break;
-                }
-            }
-            
-            if (dir) {
-                for (let i = 0; i < word.length; i++) {
-                    const cellR = r + i * dir.y;
-                    const cellC = c + i * dir.x;
-                    const cell = document.querySelector(`[data-row='${cellR}'][data-col='${cellC}']`);
-                    if (cell) {
-                        cell.classList.add('found');
-                        cell.style.backgroundColor = `var(${color})`;
-                    }
+            for (let i = 0; i < word.length; i++) {
+                const cellR = r + i * dir.y;
+                const cellC = c + i * dir.x;
+                const cell = document.querySelector(`[data-row='${cellR}'][data-col='${cellC}']`);
+                if (cell) {
+                    cell.classList.add('found');
+                    cell.style.backgroundColor = `var(${color})`;
                 }
             }
         }
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 8. HINT SYSTEM (Unchanged) ---
     function handleHintRequest(e) { const word = e.target.textContent; const hintCost = 75; if (gameState.foundWords.includes(word)) return; if (gameState.score < hintCost) { alert(`Not enough points! A hint costs ${hintCost} points.`); return; } sound.play('hint'); gameState.score -= hintCost; gameState.currentLevelData.pointsEarned -= hintCost; if (gameState.currentLevelData) gameState.currentLevelData.hintsUsed++; updateStats(); saveState(); const location = gameState.wordLocations[word]; if (location) { const hintCell = document.querySelector(`[data-row='${location.r}'][data-col='${location.c}']`); if (hintCell) { hintCell.classList.add('hint'); setTimeout(() => { hintCell.classList.remove('hint'); }, 1500); } } }
 
-    // --- 9. GAME INITIALIZATION & CONTROLS (Unchanged) ---
+    // --- 9. GAME INITIALIZATION & CONTROLS (UPDATED) ---
     function createNewGame(language, isBibleMode, score = 0) {
         langEnBtn.classList.toggle('active', language === 'english'); langRoBtn.classList.toggle('active', language === 'romanian'); bibleModeCheckbox.checked = isBibleMode;
         gameState = { level: 1, score: score, currentLanguage: language, bibleMode: isBibleMode, words: [], wordLocations: {}, grid: [], foundWords: [], currentLevelData: null, bibleChapterPlaylist: [] };
@@ -138,8 +138,36 @@ document.addEventListener('DOMContentLoaded', () => {
         hasGridSizeChanged = false;
         gameState.currentLevelData = { level: gameState.level, mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`, time: 0, hintsUsed: 0, pointsEarned: 0, wordsFound: 0, totalWords: 10, completed: false, verseMap: {}, timestamp: new Date().toISOString() };
         
-        if (gameState.bibleMode) { gameTitleEl.textContent = "Bible Word Search"; const langBibleData = bibleData[gameState.currentLanguage]; if (!langBibleData || Object.keys(langBibleData).length === 0) { alert(`Bible data not available for '${gameState.currentLanguage}'. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; } if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) { const allChapters = []; for (const book in langBibleData) { for (const chapterNum in langBibleData[book]) { allChapters.push({ book, chapterNum }); } } gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random()); } if (gameState.bibleChapterPlaylist.length === 0) { alert(`No chapters found. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; } const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length]; const { book, chapterNum } = chapterInfo; let wordsWithVerses = []; const chapterData = langBibleData[book][chapterNum]; for (const verseNum in chapterData) { const verseText = chapterData[verseNum]; const wordsInVerse = verseText.toUpperCase().match(/[A-ZĂÂÎȘȚ]+/g) || []; wordsInVerse.forEach(word => { if (word.length > 3 && word.length <= gameState.gridSize) { wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum }); } }); } const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()]; const shuffledWords = uniqueWords.sort(() => 0.5 - Math.random()); const selectedWords = shuffledWords.slice(0, 10); gameState.words = selectedWords.map(w => w.word); selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; }); }
-        else { gameTitleEl.textContent = "Bible Word Search"; gameState.words = getWordsForPuzzle(10); }
+        if (gameState.bibleMode) {
+            gameTitleEl.textContent = "Bible Word Search";
+            const langBibleData = bibleData[gameState.currentLanguage];
+            if (!langBibleData || Object.keys(langBibleData).length === 0) { alert(`Bible data not available for '${gameState.currentLanguage}'. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
+            if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) { const allChapters = []; for (const book in langBibleData) { for (const chapterNum in langBibleData[book]) { allChapters.push({ book, chapterNum }); } } gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random()); }
+            if (gameState.bibleChapterPlaylist.length === 0) { alert(`No chapters found. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
+            const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
+            const { book, chapterNum } = chapterInfo;
+            let wordsWithVerses = [];
+            const chapterData = langBibleData[book][chapterNum];
+
+            // FIXED: Word length filtering
+            for (const verseNum in chapterData) {
+                const verseText = chapterData[verseNum];
+                const wordsInVerse = verseText.toUpperCase().match(/[A-ZĂÂÎȘȚ]+/g) || [];
+                wordsInVerse.forEach(word => {
+                    if (word.length > 3 && word.length <= 10 && word.length <= gameState.gridSize) {
+                        wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum });
+                    }
+                });
+            }
+            const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
+            const shuffledWords = uniqueWords.sort(() => 0.5 - Math.random());
+            const selectedWords = shuffledWords.slice(0, 10);
+            gameState.words = selectedWords.map(w => w.word);
+            selectedWords.forEach(w => { gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse }; });
+        } else {
+            gameTitleEl.textContent = "Bible Word Search";
+            gameState.words = getWordsForPuzzle(10);
+        }
         
         if (gameState.words.length < 10) { alert("Not enough unique words for this level. Trying another level."); gameState.level++; startLevel(); return; }
         
@@ -149,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchLanguage(lang) { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } if (gameState.foundWords && gameState.foundWords.length === gameState.words.length) { gameState.level++; } const currentScore = gameState.score || 0; const isBible = bibleModeCheckbox.checked; createNewGame(lang, isBible, currentScore); }
     function switchMode() { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } const currentScore = gameState.score || 0; const currentLang = gameState.currentLanguage; const isBible = bibleModeCheckbox.checked; createNewGame(currentLang, isBible, currentScore); }
     
-    // --- EVENT LISTENERS ---
+    // --- EVENT LISTENERS (Unchanged) ---
     soundBtn.addEventListener('click', () => sound.toggleMute());
     historyBtn.addEventListener('click', displayHistory);
     closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
