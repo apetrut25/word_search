@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.6.7"; // Final Color & Word Length Fix updating start level function
+    const GAME_VERSION = "1.6.8"; // Final Color & Word Length Fix updating start level function regex
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startLevel();
     }
     
-    function startLevel() {
+function startLevel() {
     gridContainer.classList.remove('loaded');
     gridContainer.innerHTML = '<div id="loader"></div>';
     completionMessageEl.classList.add('hidden');
@@ -183,15 +183,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let wordsWithVerses = [];
         const chapterData = langBibleData[book][chapterNum];
 
-        // FIXED: Corrected word extraction to handle special characters and length filtering reliably.
-        const wordRegex = new RegExp(`[A-ZĂÂÎȘȚ]+`, 'g'); // 1. Get all character sequences.
+        // FINAL FIX: Use Unicode Property Escapes for robust, multi-language word matching.
+        // The \p{L} matches any letter character, and the 'u' flag enables Unicode mode.
+        const wordRegex = new RegExp('\\p{L}+', 'gu');
         for (const verseNum in chapterData) {
             const verseText = chapterData[verseNum];
+            // Match all whole words from the verse
             const potentialWords = verseText.toUpperCase().match(wordRegex) || [];
 
-            // 2. Now, filter them by the correct length.
+            // Now, filter the whole words by the desired length
             potentialWords.forEach(word => {
-                // This ensures words are between 4 and 9 characters long.
                 if (word.length >= 4 && word.length <= 9 && word.length <= gameState.gridSize) {
                     wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum });
                 }
