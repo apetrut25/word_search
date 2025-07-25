@@ -23,7 +23,7 @@ html { height: 100%; overflow: hidden; }
 body { margin: 0; font-family: var(--font-main); background-color: var(--bg-color); color: var(--main-text-color); display: flex; justify-content: center; align-items: center; height: 100%; padding: 0.5rem; box-sizing: border-box; touch-action: none; }
 
 /* --- FULL SCREEN LAYOUT WRAPPER --- */
-#game-wrapper { width: 100%; height: 100%; max-width: 900px; /* Constrain max width for very large screens */ max-height: 100vh; display: flex; justify-content: center; align-items: center; }
+#game-wrapper { width: 100%; height: 100%; max-width: 900px; max-height: 100vh; display: flex; justify-content: center; align-items: center; }
 #game-container { width: 100%; height: 100%; text-align: center; display: flex; flex-direction: column; gap: 0.5rem; }
 #game-header, #game-footer { flex-shrink: 0; }
 #version-info { margin-bottom: 0.5rem; font-size: 0.8rem; color: #888; text-align: center; }
@@ -43,28 +43,54 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 #language-switcher button { padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary-color); background-color: #ecf0f1; color: var(--main-text-color); }
 #language-switcher button.active { background-color: var(--primary-color); color: white; }
 #game-mode-switcher label { font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-/* NEW: Grid Size Control Styles */
 #grid-size-control { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: bold; }
 #grid-size-slider { cursor: pointer; }
 #grid-size-value { min-width: 55px; text-align: left; }
 
 /* --- 3. MAIN CONTENT (GRID & LIST) --- */
-#main-content {
+#main-content { display: flex; flex-direction: column; gap: 1rem; flex-grow: 1; min-height: 0; align-items: center; }
+#puzzle-grid {
     display: flex;
-    flex-direction: column; /* ALWAYS vertical */
-    gap: 1rem;
-    flex-grow: 1;
-    min-height: 0;
+    justify-content: center;
     align-items: center;
+    background-color: var(--bg-color);
+    border: 2px solid var(--border-color);
+    padding: 5px;
+    border-radius: 10px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 65vh; /* Limit size based on screen height for portrait */
+    max-height: 65vw; /* Limit size based on screen width for landscape */
+    box-sizing: border-box;
+    /* NEW: CSS Variable for grid size */
+    --grid-size: 13;
 }
-#puzzle-grid { display: flex; justify-content: center; align-items: center; background-color: var(--bg-color); border: 2px solid var(--border-color); padding: 5px; border-radius: 10px; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05); aspect-ratio: 1 / 1; width: 100%; max-width: 50vh; /* Limit size based on screen height */ box-sizing: border-box; }
 #puzzle-grid.loaded { display: grid; }
 #loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.grid-cell { aspect-ratio: 1 / 1; min-width: 20px; display: flex; justify-content: center; align-items: center; background-color: var(--grid-bg-color); border-radius: 5px; font-family: var(--font-monospace); font-size: clamp(0.6rem, 2.5vw, 1.2rem); font-weight: bold; text-transform: uppercase; user-select: none; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s; }
+
+.grid-cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--grid-bg-color);
+    border-radius: 5px;
+    font-family: var(--font-monospace);
+    /* UPDATED: Dynamic font size calculation */
+    font-size: calc(40vw / var(--grid-size, 13));
+    font-weight: bold;
+    text-transform: uppercase;
+    user-select: none;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
 .grid-cell.selected { background-color: var(--accent-color); transform: scale(1.05); }
 .grid-cell.found { border-color: transparent; }
-#word-list-container { padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color); overflow-y: auto; width: 100%; max-width: 50vh; box-sizing: border-box; }
+#word-list-container { padding: 0.75rem; background-color: var(--grid-bg-color); border-radius: 10px; border: 1px solid var(--border-color); overflow-y: auto; width: 100%; max-width: 65vh; box-sizing: border-box; flex-shrink: 0; }
 #words-to-find { list-style-type: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 0.75rem; }
 #words-to-find li { font-size: 1rem; padding: 0.4rem 0.8rem; background-color: #ecf0f1; border-radius: 20px; transition: all 0.3s ease; }
 #words-to-find li:not(.found) { cursor: pointer; }
@@ -75,7 +101,7 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 
 /* --- 4. FOOTER DISPLAYS --- */
 #game-footer { display: flex; flex-direction: column; flex-shrink: 0; }
-#verse-display, #definition-display { padding: 0.5rem 1rem; background-color: var(--grid-bg-color); border: 1px dashed var(--primary-color); border-radius: 10px; transition: all 0.3s ease-in-out; color: #34495e; text-align: left; max-height: 15vh; /* Adjusted for more compact layout */ overflow-y: auto; }
+#verse-display, #definition-display { padding: 0.5rem 1rem; background-color: var(--grid-bg-color); border: 1px dashed var(--primary-color); border-radius: 10px; transition: all 0.3s ease-in-out; color: #34495e; text-align: left; max-height: 15vh; overflow-y: auto; }
 #verse-display { font-style: italic; }
 #definition-display p { margin: 0; font-size: 0.9rem; }
 #verse-display.hidden, #definition-display.hidden { max-height: 0; opacity: 0; padding: 0; margin: 0; border: none; overflow: hidden; }
@@ -96,3 +122,10 @@ h1 { font-size: 1.8rem; margin: 0 0 0.5rem 0; }
 .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
 .history-entry { border-bottom: 1px solid var(--border-color); padding: 10px 5px; }
 .entry-skipped { font-weight: bold; color: var(--warning-color); }
+
+/* Media query for very small screens to adjust font size */
+@media (max-width: 380px) {
+    .grid-cell {
+        font-size: calc(50vw / var(--grid-size, 13));
+    }
+}
