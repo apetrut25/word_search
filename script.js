@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.7.1"; // fix sound ipad
+    const GAME_VERSION = "1.7.2"; // update level complete banner
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),

@@ -43,6 +43,12 @@
             <main id="main-content">
                 <div id="puzzle-grid"><div id="loader"></div></div>
                 <div id="word-list-container"><ul id="words-to-find"></ul></div>
+                
+                <!-- MOVED HERE FROM THE FOOTER TO ALLOW FOR OVERLAY STYLING -->
+                <div id="completion-message" class="hidden">
+                    <p>Level Complete!</p>
+                    <span id="completion-details"></span>
+                </div>
             </main>
             
             <footer id="game-footer">
@@ -55,7 +61,6 @@
                     <p>Level: <span id="level">1</span></p>
                     <p>Time: <span id="timer">0s</span></p>
                 </div>
-                <div id="completion-message" class="hidden"><p>Level Complete!</p><span id="completion-details"></span></div>
             </footer>
         </div>
     </div>
@@ -66,11 +71,9 @@
     
     <script src="script.js"></script>
 
-    <!-- ===== ADDED SCRIPT TO PREVENT ZOOM ON iOS ===== -->
+    <!-- Script to prevent pinch-to-zoom gesture on iOS devices -->
     <script type="text/javascript">
-        // This script prevents the pinch-to-zoom gesture on iOS devices.
         document.addEventListener('touchmove', function(event) {
-            // Check if there are two or more touches (a pinch gesture).
             if (event.scale !== 1 && event.touches.length > 1) {
                 event.preventDefault();
             }
