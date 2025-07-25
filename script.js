@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.6.8"; // Final Color & Word Length Fix updating start level function regex
+    const GAME_VERSION = "1.6.9"; // Final Color & Word Length Fix updating start level function regex
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
@@ -131,104 +131,105 @@ document.addEventListener('DOMContentLoaded', () => {
         startLevel();
     }
     
-function startLevel() {
-    gridContainer.classList.remove('loaded');
-    gridContainer.innerHTML = '<div id="loader"></div>';
-    completionMessageEl.classList.add('hidden');
-    verseDisplayEl.classList.add('hidden');
-    definitionDisplayEl.classList.add('hidden');
-    newGameBtnText.textContent = "Next / Skip";
-    gameState.gridSize = parseInt(gridSizeSlider.value);
-    gridContainer.style.setProperty('--grid-size', gameState.gridSize);
-    hasGridSizeChanged = false;
-    gameState.currentLevelData = {
-        level: gameState.level,
-        mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`,
-        time: 0,
-        hintsUsed: 0,
-        pointsEarned: 0,
-        wordsFound: 0,
-        totalWords: 10,
-        completed: false,
-        verseMap: {},
-        timestamp: new Date().toISOString()
-    };
+    function startLevel() {
+        gridContainer.classList.remove('loaded');
+        gridContainer.innerHTML = '<div id="loader"></div>';
+        completionMessageEl.classList.add('hidden');
+        verseDisplayEl.classList.add('hidden');
+        definitionDisplayEl.classList.add('hidden');
+        newGameBtnText.textContent = "Next / Skip";
+        gameState.gridSize = parseInt(gridSizeSlider.value);
+        gridContainer.style.setProperty('--grid-size', gameState.gridSize);
+        hasGridSizeChanged = false;
+        gameState.currentLevelData = {
+            level: gameState.level,
+            mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`,
+            time: 0,
+            hintsUsed: 0,
+            pointsEarned: 0,
+            wordsFound: 0,
+            totalWords: 10,
+            completed: false,
+            verseMap: {},
+            timestamp: new Date().toISOString()
+        };
 
-    if (gameState.bibleMode) {
-        gameTitleEl.textContent = "Bible Word Search";
-        const langBibleData = bibleData[gameState.currentLanguage];
-        if (!langBibleData || Object.keys(langBibleData).length === 0) {
-            alert(`Bible data not available for '${gameState.currentLanguage}'. Switching to Standard Mode.`);
-            bibleModeCheckbox.checked = false;
-            switchMode();
-            return;
-        }
-        if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) {
-            const allChapters = [];
-            for (const book in langBibleData) {
-                for (const chapterNum in langBibleData[book]) {
-                    allChapters.push({ book, chapterNum });
-                }
+        if (gameState.bibleMode) {
+            gameTitleEl.textContent = "Bible Word Search";
+            const langBibleData = bibleData[gameState.currentLanguage];
+            if (!langBibleData || Object.keys(langBibleData).length === 0) {
+                alert(`Bible data not available for '${gameState.currentLanguage}'. Switching to Standard Mode.`);
+                bibleModeCheckbox.checked = false;
+                switchMode();
+                return;
             }
-            gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random());
+            if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) {
+                const allChapters = [];
+                for (const book in langBibleData) {
+                    for (const chapterNum in langBibleData[book]) {
+                        allChapters.push({ book, chapterNum });
+                    }
+                }
+                gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random());
+            }
+            if (gameState.bibleChapterPlaylist.length === 0) {
+                alert(`No chapters found. Switching to Standard Mode.`);
+                bibleModeCheckbox.checked = false;
+                switchMode();
+                return;
+            }
+            const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
+            const { book, chapterNum } = chapterInfo;
+            let wordsWithVerses = [];
+            const chapterData = langBibleData[book][chapterNum];
+
+            // FINAL FIX: Use Unicode Property Escapes and NORMALIZATION for truly robust multi-language word matching.
+            const wordRegex = new RegExp('\\p{L}+', 'gu');
+            for (const verseNum in chapterData) {
+                // NORMALIZE the string to its canonical form before processing to prevent truncation.
+                const verseText = chapterData[verseNum].normalize('NFC');
+                
+                // Match all whole words from the verse
+                const potentialWords = verseText.toUpperCase().match(wordRegex) || [];
+
+                // Now, filter the whole words by the desired length
+                potentialWords.forEach(word => {
+                    if (word.length >= 4 && word.length <= 9 && word.length <= gameState.gridSize) {
+                        wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum });
+                    }
+                });
+            }
+            const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
+            const shuffledWords = uniqueWords.sort(() => 0.5 - Math.random());
+            const selectedWords = shuffledWords.slice(0, 10);
+            gameState.words = selectedWords.map(w => w.word);
+            selectedWords.forEach(w => {
+                gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse };
+            });
+        } else {
+            gameTitleEl.textContent = "Bible Word Search";
+            gameState.words = getWordsForPuzzle(10);
         }
-        if (gameState.bibleChapterPlaylist.length === 0) {
-            alert(`No chapters found. Switching to Standard Mode.`);
-            bibleModeCheckbox.checked = false;
-            switchMode();
+
+        if (gameState.words.length < 10) {
+            alert("Not enough unique words for this level. Trying another level.");
+            gameState.level++;
+            startLevel();
             return;
         }
-        const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
-        const { book, chapterNum } = chapterInfo;
-        let wordsWithVerses = [];
-        const chapterData = langBibleData[book][chapterNum];
 
-        // FINAL FIX: Use Unicode Property Escapes for robust, multi-language word matching.
-        // The \p{L} matches any letter character, and the 'u' flag enables Unicode mode.
-        const wordRegex = new RegExp('\\p{L}+', 'gu');
-        for (const verseNum in chapterData) {
-            const verseText = chapterData[verseNum];
-            // Match all whole words from the verse
-            const potentialWords = verseText.toUpperCase().match(wordRegex) || [];
-
-            // Now, filter the whole words by the desired length
-            potentialWords.forEach(word => {
-                if (word.length >= 4 && word.length <= 9 && word.length <= gameState.gridSize) {
-                    wordsWithVerses.push({ word, book, chapter: chapterNum, verse: verseNum });
-                }
-            });
-        }
-        const uniqueWords = [...new Map(wordsWithVerses.map(item => [item.word, item])).values()];
-        const shuffledWords = uniqueWords.sort(() => 0.5 - Math.random());
-        const selectedWords = shuffledWords.slice(0, 10);
-        gameState.words = selectedWords.map(w => w.word);
-        selectedWords.forEach(w => {
-            gameState.currentLevelData.verseMap[w.word] = { book: w.book, chapter: w.chapter, verse: w.verse };
-        });
-    } else {
-        gameTitleEl.textContent = "Bible Word Search";
-        gameState.words = getWordsForPuzzle(10);
+        setTimeout(() => {
+            gameState.grid = generatePuzzle();
+            if (gameState.grid) {
+                renderGame();
+                startTimer();
+                saveState();
+            } else {
+                alert("The puzzle generator failed. Let's try creating a new puzzle for this level.");
+                startLevel();
+            }
+        }, 50);
     }
-
-    if (gameState.words.length < 10) {
-        alert("Not enough unique words for this level. Trying another level.");
-        gameState.level++;
-        startLevel();
-        return;
-    }
-
-    setTimeout(() => {
-        gameState.grid = generatePuzzle();
-        if (gameState.grid) {
-            renderGame();
-            startTimer();
-            saveState();
-        } else {
-            alert("The puzzle generator failed. Let's try creating a new puzzle for this level.");
-            startLevel();
-        }
-    }, 50);
-}
     
     function switchLanguage(lang) { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } if (gameState.foundWords && gameState.foundWords.length === gameState.words.length) { gameState.level++; } const currentScore = gameState.score || 0; const isBible = bibleModeCheckbox.checked; createNewGame(lang, isBible, currentScore); }
     function switchMode() { if (gameState.currentLevelData && gameState.currentLevelData.completed === false) { saveHistory(gameState.currentLevelData); } const currentScore = gameState.score || 0; const currentLang = gameState.currentLanguage; const isBible = bibleModeCheckbox.checked; createNewGame(currentLang, isBible, currentScore); }
