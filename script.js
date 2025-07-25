@@ -182,6 +182,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // KICK OFF THE ENTIRE PROCESS
     initializeGame();
-});```
-
-This should finally resolve all outstanding issues. Thank you for your incredible patience and for helping me identify these critical bugs. Your game is now in a truly complete and polished state.
+});
