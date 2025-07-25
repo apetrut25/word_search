@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.6.9"; // Final Color & Word Length Fix updating start level function regex
+    const GAME_VERSION = "1.7.0"; // recolor grid cells for found words
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameContainer = document.getElementById('game-container'),
@@ -84,12 +84,46 @@ document.addEventListener('DOMContentLoaded', () => {
         gridContainer.innerHTML = '';
         gridContainer.classList.add('loaded');
         gridContainer.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`;
-        for (let r = 0; r < gameState.gridSize; r++) { for (let c = 0; c < gameState.gridSize; c++) { const cell = document.createElement('div'); cell.classList.add('grid-cell'); cell.textContent = gameState.grid[r][c]; cell.dataset.row = r; cell.dataset.col = c; gridContainer.appendChild(cell); } }
+        for (let r = 0; r < gameState.gridSize; r++) {
+            for (let c = 0; c < gameState.gridSize; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('grid-cell');
+                cell.textContent = gameState.grid[r][c];
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                gridContainer.appendChild(cell);
+            }
+        }
         addSelectionListeners();
+
+        // THIS IS THE CRITICAL ADDITION:
+        // Re-apply styles for found words after the grid is drawn
         reapplyFoundStyles();
     }
     function renderWordList() { wordListUl.innerHTML = ''; const sortedWords = [...gameState.words].sort(); wordColorMap = {}; let shuffledPalette = [...colorPalette].sort(() => 0.5 - Math.random()); sortedWords.forEach((word, index) => { wordColorMap[word] = shuffledPalette[index % shuffledPalette.length]; }); sortedWords.forEach(word => { const li = document.createElement('li'); li.textContent = word; li.id = `word-${word}`; if (gameState.foundWords.includes(word)) { li.classList.add('found'); li.style.backgroundColor = `var(${wordColorMap[word]})`; } li.addEventListener('click', handleHintRequest); wordListUl.appendChild(li); }); }
     function updateStats() { scoreEl.textContent = gameState.score; levelEl.textContent = gameState.level; }
+    function reapplyFoundStyles() {
+        if (!gameState.wordLocations || !gameState.foundWords) return;
+
+        for (const word of gameState.foundWords) {
+            const location = gameState.wordLocations[word];
+            const color = wordColorMap[word];
+            
+            // Ensure all data needed to color the word exists
+            if (!location || !color || !location.dir) continue;
+
+            let { r, c, dir } = location;
+            for (let i = 0; i < word.length; i++) {
+                const cellR = r + i * dir.y;
+                const cellC = c + i * dir.x;
+                const cell = document.querySelector(`[data-row='${cellR}'][data-col='${cellC}']`);
+                if (cell) {
+                    cell.classList.add('found');
+                    cell.style.backgroundColor = `var(${color})`;
+                }
+            }
+        }
+    }     
     
     // NEW & FIXED: Function to re-apply colors to the grid for saved games
     function reapplyFoundStyles() {
