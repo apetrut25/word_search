@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- This tag is still important, even if iOS ignores parts of it -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bible Word Search</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -64,5 +65,17 @@
     </div>
     
     <script src="script.js"></script>
+
+    <!-- ===== ADDED SCRIPT TO PREVENT ZOOM ON iOS ===== -->
+    <script type="text/javascript">
+        // This script prevents the pinch-to-zoom gesture on iOS devices.
+        document.addEventListener('touchmove', function(event) {
+            // Check if there are two or more touches (a pinch gesture).
+            if (event.scale !== 1 && event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+    
 </body>
 </html>
