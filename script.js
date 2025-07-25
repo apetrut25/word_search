@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.5.1"; // Final UI Streamlining
+    const GAME_VERSION = "1.6.0"; // Final Polished Version
     const BUILD_DATE = "2025-07-25";
-    // UPDATED: Removed skipBtn and clearCacheBtn
+    // UPDATED: Removed deleted button references
     const gameWrapper = document.getElementById('game-wrapper'),
+        gameContainer = document.getElementById('game-container'),
         gameTitleEl = document.getElementById('game-title'),
         optionsToggle = document.getElementById('options-toggle'),
         optionsDrawer = document.getElementById('options-drawer'),
@@ -119,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameState.level === 1 || !gameState.bibleChapterPlaylist || gameState.bibleChapterPlaylist.length === 0) { const allChapters = []; for (const book in langBibleData) { for (const chapterNum in langBibleData[book]) { allChapters.push({ book, chapterNum }); } } gameState.bibleChapterPlaylist = allChapters.sort(() => 0.5 - Math.random()); }
             if (gameState.bibleChapterPlaylist.length === 0) { alert(`No chapters found. Switching to Standard Mode.`); bibleModeCheckbox.checked = false; switchMode(); return; }
             const chapterInfo = gameState.bibleChapterPlaylist[(gameState.level - 1) % gameState.bibleChapterPlaylist.length];
-            // ... (rest of Bible word selection is unchanged)
             const { book, chapterNum } = chapterInfo;
             let wordsWithVerses = [];
             const chapterData = langBibleData[book][chapterNum];
@@ -150,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
     closeHistoryBtn.addEventListener('click', () => historyModal.classList.add('hidden'));
     bibleModeCheckbox.addEventListener('change', switchMode);
     
-    // UPDATED: Combined New/Skip/Regenerate logic
     newGameBtn.addEventListener('click', () => {
         const isComplete = gameState.foundWords.length === gameState.words.length;
         if (isComplete) {
@@ -175,11 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    // UPDATED: Removed clear cache button listener, added options toggle
-    optionsToggle.addEventListener('click', () => {
-        optionsDrawer.classList.toggle('expanded');
-    });
     
     langEnBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'english') switchLanguage('english'); });
     langRoBtn.addEventListener('click', () => { if (gameState.currentLanguage !== 'romanian') switchLanguage('romanian'); });
@@ -189,6 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
         gridSizeValue.textContent = `${size} x ${size}`;
         localStorage.setItem('wordSearchGridSize', size);
         hasGridSizeChanged = true;
+    });
+
+    optionsToggle.addEventListener('click', () => {
+        optionsDrawer.classList.toggle('expanded');
     });
 
     // KICK OFF THE ENTIRE PROCESS

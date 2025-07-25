@@ -12,52 +12,48 @@ body { padding: 0.5rem; box-sizing: border-box; }
 
 /* --- 2. HEADER & OPTIONS (REBUILT) --- */
 #game-header {
-    /* Uses flexbox to align children: toggle button and title bar */
-    display: flex;
+    display: grid;
+    grid-template-columns: 50px 1fr 50px; /* Left Button | Center Title | Right Spacer */
     align-items: center;
-    justify-content: flex-start; /* Aligns items to the start */
-    position: relative;
     padding-bottom: 0.5rem;
-    margin-bottom: 0; /* REMOVED MARGIN TO KILL WASTED SPACE */
 }
 #options-toggle {
+    grid-column: 1 / 2;
     display: flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; background-color: transparent;
     border: 2px solid var(--border-color); border-radius: 50%;
     cursor: pointer; transition: all 0.3s ease;
-    flex-shrink: 0; /* Prevent the button from shrinking */
+    margin: 0 auto; /* Center within its grid column */
 }
 #options-toggle:hover { background-color: #eaf5ff; }
 #options-arrow { transition: transform 0.3s ease-in-out; }
 #options-drawer.expanded #options-arrow { transform: rotate(180deg); }
 
 #title-bar {
+    grid-column: 2 / 3;
     display: flex;
+    flex-direction: column; /* Stack title and version vertically */
     justify-content: center;
-    align-items: baseline;
-    gap: 0.5rem;
-    flex-grow: 1; /* Allows title bar to fill the remaining space */
-    /* This makes the title truly centered in the header */
-    transform: translateX(-17px); /* Half the width of the toggle button to re-center */
+    align-items: center;
+    gap: 0.1rem;
 }
-h1 { font-size: 1.5rem; margin: 0; }
-#version-info { font-size: 0.8rem; color: #888; }
+h1 { font-size: 1.5rem; margin: 0; line-height: 1; }
+#version-info { font-size: 0.8rem; color: #888; white-space: nowrap; /* Prevent wrapping */ }
 
 #options-drawer {
-    /* This will appear below the header when expanded */
-    width: 100%;
+    grid-column: 1 / -1; /* Span all columns when open */
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
     opacity: 0;
 }
-#options-drawer.expanded { grid-template-rows: 1fr; opacity: 1; }
+#options-drawer.expanded { grid-template-rows: 1fr; opacity: 1; padding-top: 0.5rem; }
 #options-drawer > div { overflow: hidden; }
 
 #controls {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     justify-items: center; align-items: center;
-    padding: 1rem; margin-top: 0.5rem; gap: 1rem;
+    padding: 1rem; gap: 1rem;
     background-color: #eaf5ff; border-radius: 10px;
 }
 #language-switcher, #game-mode-switcher, #grid-size-control { display: flex; align-items: center; gap: 0.5rem; }
