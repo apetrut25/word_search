@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. DOM & CONFIGURATION ---
-    const GAME_VERSION = "1.4.0"; // Final UI: Collapsible Options & UX Polish
+    const GAME_VERSION = "1.5.0"; // Final UI Cleanup
     const BUILD_DATE = "2025-07-25";
     const gameWrapper = document.getElementById('game-wrapper'),
         gameTitleEl = document.getElementById('game-title'),
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameState = {};
     let puzzleTimer;
     let bibleData = {}, standardDictionaries = {};
-    let hasGridSizeChanged = false; // NEW: Flag to track if the user changed the grid size
+    let hasGridSizeChanged = false;
     const colorPalette = ['--found-color-1', '--found-color-2', '--found-color-3', '--found-color-4', '--found-color-5', '--found-color-6', '--found-color-7', '--found-color-8', '--found-color-9', '--found-color-10'];
     let wordColorMap = {};
     const alphabet = { english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", romanian: "AĂÂBCDEFGHIÎJKLMNOPRSȘTȚUVWXYZ" };
@@ -106,12 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
         gridContainer.classList.remove('loaded');
         gridContainer.innerHTML = '<div id="loader"></div>';
         completionMessageEl.classList.add('hidden'); verseDisplayEl.classList.add('hidden'); definitionDisplayEl.classList.add('hidden');
-        newGameBtnText.textContent = "New Puzzle / Skip"; // Updated default text
-        
+        newGameBtnText.textContent = "New Puzzle / Skip";
         gameState.gridSize = parseInt(gridSizeSlider.value);
         gridContainer.style.setProperty('--grid-size', gameState.gridSize);
-        hasGridSizeChanged = false; // Reset the flag for the new level
-
+        hasGridSizeChanged = false;
         gameState.currentLevelData = { level: gameState.level, mode: `${gameState.bibleMode ? 'Bible' : 'Standard'} (${gameState.currentLanguage})`, time: 0, hintsUsed: 0, pointsEarned: 0, wordsFound: 0, totalWords: 10, completed: false, verseMap: {}, timestamp: new Date().toISOString() };
         
         // UPDATED: Set title based on mode
@@ -157,18 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
     newGameBtn.addEventListener('click', () => {
         const isComplete = gameState.foundWords.length === gameState.words.length;
         if (isComplete) {
-            // Behave as "Next Level"
             gameState.level++;
             gameState.foundWords = [];
             startLevel();
         } else if (hasGridSizeChanged) {
-            // Behave as a "free" regenerate
-            if (confirm("Change grid size and start a new puzzle for this level? (No cost)")) {
-                gameState.foundWords = []; // Reset progress
+            if (confirm("Change grid size and start a new puzzle for this level? (Your progress on this level will be lost)")) {
+                saveHistory(gameState.currentLevelData); // Save incomplete progress
+                gameState.foundWords = [];
                 startLevel();
             }
         } else {
-            // Behave as "Skip"
             const skipCost = 100;
             if (gameState.score < skipCost) { alert(`You need at least ${skipCost} points to skip a puzzle!`); return; }
             if (confirm(`Are you sure you want to skip this puzzle? It will cost ${skipCost} points.`)) {
@@ -180,13 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
-    // NEW: Clear Cache button
+
     clearCacheBtn.addEventListener('click', () => {
         if (confirm("This will clear your current game progress and preferences (like grid size), but not your history. Are you sure?")) {
             localStorage.removeItem('wordSearchGameState');
             localStorage.removeItem('wordSearchGridSize');
-            // We keep 'wordSearchHistory'
             window.location.reload();
         }
     });
@@ -198,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const size = e.target.value;
         gridSizeValue.textContent = `${size} x ${size}`;
         localStorage.setItem('wordSearchGridSize', size);
-        hasGridSizeChanged = true; // Set the flag
+        hasGridSizeChanged = true;
     });
 
     optionsToggle.addEventListener('click', () => {
